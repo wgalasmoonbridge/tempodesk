@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "../../components/Button";
 import { Dialog } from "../../components/Dialog";
 import { EmptyState } from "../../components/EmptyState";
@@ -21,6 +28,7 @@ import {
 } from "../../lib/time";
 import { entryTimeRange, entryTitle, pluralize } from "../../lib/format";
 import { EntryDialog } from "../entries/EntryDialog";
+import { SummaryPanel } from "../summary/SummaryPanel";
 
 interface CellTarget {
   date: string;
@@ -38,6 +46,7 @@ export function TimesheetPage() {
   const [error, setError] = useState<string | null>(null);
   const [cell, setCell] = useState<CellTarget | null>(null);
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   const today = todayKey(timezone);
   const days = useMemo(
@@ -84,6 +93,13 @@ export function TimesheetPage() {
           </div>
         </div>
         <div className="page-header-actions">
+          <Button
+            size="sm"
+            icon={<Sparkles size={14} aria-hidden="true" />}
+            onClick={() => setSummaryOpen(true)}
+          >
+            Summarize week
+          </Button>
           <div className="week-nav">
             <IconButton
               label="Previous week"
@@ -350,6 +366,31 @@ export function TimesheetPage() {
         entry={editEntry}
         onClose={() => setEditEntry(null)}
       />
+
+      <Dialog
+        open={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        title="Weekly summary"
+        description={`${formatMonthDay(weekStart)} – ${formatMonthDay(
+          addDaysKey(weekStart, 6),
+        )} · generated from this timesheet week`}
+        wide
+        footer={
+          <>
+            <span className="spacer" />
+            <Button onClick={() => setSummaryOpen(false)}>Close</Button>
+          </>
+        }
+      >
+        <SummaryPanel
+          embedded
+          filter={{
+            dateFrom: weekStart,
+            dateTo: addDaysKey(weekStart, 6),
+            timezone,
+          }}
+        />
+      </Dialog>
     </>
   );
 }

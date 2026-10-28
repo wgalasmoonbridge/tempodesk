@@ -390,6 +390,11 @@ pub struct AppSettings {
     pub toggle_shortcut: String,
     pub onboarding_complete: bool,
     pub tray_explained: bool,
+    pub ai_summaries_enabled: bool,
+    pub ai_provider: String,
+    pub ai_model: String,
+    pub ai_consent: bool,
+    pub ai_include_descriptions: bool,
 }
 
 impl Default for AppSettings {
@@ -408,6 +413,11 @@ impl Default for AppSettings {
             toggle_shortcut: "CommandOrControl+Shift+Y".into(),
             onboarding_complete: false,
             tray_explained: false,
+            ai_summaries_enabled: false,
+            ai_provider: "gemini".into(),
+            ai_model: "gemini-2.5-flash".into(),
+            ai_consent: false,
+            ai_include_descriptions: true,
         }
     }
 }
@@ -441,6 +451,16 @@ pub struct SettingsPatch {
     pub onboarding_complete: Option<bool>,
     #[serde(default)]
     pub tray_explained: Option<bool>,
+    #[serde(default)]
+    pub ai_summaries_enabled: Option<bool>,
+    #[serde(default)]
+    pub ai_provider: Option<String>,
+    #[serde(default)]
+    pub ai_model: Option<String>,
+    #[serde(default)]
+    pub ai_consent: Option<bool>,
+    #[serde(default)]
+    pub ai_include_descriptions: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -448,6 +468,45 @@ pub struct SettingsPatch {
 pub struct SettingsUpdateResult {
     pub settings: AppSettings,
     pub warnings: Vec<String>,
+}
+
+// ---------------------------------------------------------------------------
+// AI summaries
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiStatus {
+    pub enabled: bool,
+    pub provider: String,
+    pub model: String,
+    pub consent: bool,
+    pub include_descriptions: bool,
+    pub key_configured: bool,
+    pub key_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiTestResult {
+    pub ok: bool,
+    pub message: String,
+    pub model: String,
+    pub latency_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SummaryResult {
+    pub text: String,
+    /// "local" | "ai"
+    pub mode: String,
+    pub provider: Option<String>,
+    pub model: Option<String>,
+    pub generated_at_utc: i64,
+    pub range_label: String,
+    pub total_seconds: i64,
+    pub warning: Option<String>,
 }
 
 // ---------------------------------------------------------------------------

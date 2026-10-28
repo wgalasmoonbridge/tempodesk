@@ -1,5 +1,7 @@
+pub mod ai;
 pub mod commands;
 pub mod platform;
+pub mod secrets;
 pub mod state;
 
 // Domain, storage, and models live in the Tauri-free `tempodesk-core` crate.
@@ -117,6 +119,11 @@ pub fn run() {
             commands::get_settings,
             commands::update_settings,
             commands::get_shortcut_status,
+            commands::get_ai_status,
+            commands::set_ai_api_key,
+            commands::delete_ai_api_key,
+            commands::test_ai_connection,
+            commands::generate_summary,
             commands::save_backup,
             commands::preview_restore,
             commands::restore_backup,

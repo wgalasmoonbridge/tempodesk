@@ -1,15 +1,18 @@
 use tauri::{AppHandle, Emitter, State};
 
-use crate::domain::{idle, portability, reports, timer, timeutil};
+use crate::ai;
+use crate::domain::{idle, portability, reports, summary, timer, timeutil};
+use crate::error::AppError;
 use crate::error::Result;
 use crate::models::{
-    AppSettings, AppStatus, BackupPreview, BackupResult, BulkDeleteResult, BulkRestoreResult,
-    Client, ClientInput, CreatedEntry, EntryFilter, EntryUpdateInput, ExportResult, IdleReview,
-    ManualEntryInput, PlatformInfo, Project, ProjectInput, RecoveryInfo, ReportFilter,
-    ReportResult, RestoreResult, SettingsPatch, SettingsUpdateResult, ShortcutStatus,
-    StartTimerInput, Tag, TagInput, TimeEntry, Timesheet,
+    AiStatus, AiTestResult, AppSettings, AppStatus, BackupPreview, BackupResult, BulkDeleteResult,
+    BulkRestoreResult, Client, ClientInput, CreatedEntry, EntryFilter, EntryUpdateInput,
+    ExportResult, IdleReview, ManualEntryInput, PlatformInfo, Project, ProjectInput, RecoveryInfo,
+    ReportFilter, ReportResult, RestoreResult, SettingsPatch, SettingsUpdateResult, ShortcutStatus,
+    StartTimerInput, SummaryResult, Tag, TagInput, TimeEntry, Timesheet,
 };
 use crate::platform;
+use crate::secrets;
 use crate::state::AppState;
 use crate::storage::{
     repo_clients, repo_entries, repo_idle, repo_projects, repo_settings, repo_tags,
@@ -488,6 +491,108 @@ pub fn update_settings(
 #[tauri::command]
 pub fn get_shortcut_status(state: State<'_, AppState>) -> Result<ShortcutStatus> {
     Ok(state.shortcut_status())
+}
+
+/* ------------------------------- AI summaries ---------------------------- */
+
+fn build_ai_status(state: &AppState) -> AiStatus {
+    let settings = state.settings_snapshot();
+    let (key_configured, key_error) = secrets::key_status(state.data_profile());
+    AiStatus {
+        enabled: settings.ai_summaries_enabled,
+        provider: settings.ai_provider,
+        model: settings.ai_model,
+        consent: settings.ai_consent,
+        include_descriptions: settings.ai_include_descriptions,
+        key_configured,
+        key_error,
+    }
+}
+
+#[tauri::command]
+pub fn get_ai_status(state: State<'_, AppState>) -> Result<AiStatus> {
+    Ok(build_ai_status(&state))
+}
+
+#[tauri::command]
+pub fn set_ai_api_key(state: State<'_, AppState>, api_key: String) -> Result<AiStatus> {
+    secrets::set_api_key(state.data_profile(), &api_key)?;
+    Ok(build_ai_status(&state))
+}
+
+#[tauri::command]
+pub fn delete_ai_api_key(state: State<'_, AppState>) -> Result<AiStatus> {
+    secrets::delete_api_key(state.data_profile())?;
+    Ok(build_ai_status(&state))
+}
+
+#[tauri::command]
+pub async fn test_ai_connection(state: State<'_, AppState>) -> Result<AiTestResult> {
+    let profile = state.data_profile().to_string();
+    let model = state.settings_snapshot().ai_model;
+    let key = secrets::get_api_key(&profile)?.ok_or_else(|| {
+        AppError::validation("Add a Gemini API key before testing the connection")
+    })?;
+    ai::test_connection(&model, &key).await
+}
+
+/// Generate a high-level summary. `use_ai = false` produces the deterministic local summary
+/// without any network access. AI generation requires an enabled, consented configuration and a
+/// key from the OS credential store.
+#[tauri::command]
+pub async fn generate_summary(
+    state: State<'_, AppState>,
+    filter: ReportFilter,
+    use_ai: bool,
+) -> Result<SummaryResult> {
+    let now = timeutil::now_ms();
+    let (report, settings, profile) = {
+        let db = state.db()?;
+        (
+            reports::get_report(&db, &filter, now)?,
+            state.settings_snapshot(),
+            state.data_profile().to_string(),
+        )
+    };
+    let range_label = format!("{} to {}", report.date_from, report.date_to);
+    if !use_ai {
+        return Ok(SummaryResult {
+            text: summary::local_summary(&report),
+            mode: "local".into(),
+            provider: None,
+            model: None,
+            generated_at_utc: now,
+            range_label,
+            total_seconds: report.total_seconds,
+            warning: None,
+        });
+    }
+
+    if !settings.ai_summaries_enabled {
+        return Err(AppError::Unsupported(
+            "AI summaries are disabled. Enable them in Settings → AI summaries.".into(),
+        ));
+    }
+    if !settings.ai_consent {
+        return Err(AppError::Unsupported(
+            "Confirm the AI data-sharing notice in Settings before generating an AI summary."
+                .into(),
+        ));
+    }
+    let key = secrets::get_api_key(&profile)?.ok_or_else(|| {
+        AppError::validation(
+            "Add a Gemini API key in Settings → AI summaries before generating an AI summary.",
+        )
+    })?;
+    let prompt = summary::build_ai_prompt(&report, settings.ai_include_descriptions);
+    ai::generate(
+        &settings.ai_model,
+        &key,
+        &prompt,
+        report.total_seconds,
+        range_label,
+    )
+    .await
 }
 
 /* ------------------------------- data files ------------------------------ */

@@ -3,7 +3,8 @@
 **Private, local-first desktop time tracking.** TempoDesk is a Tauri 2 desktop app for Windows and
 macOS with one running timer, manual entries, projects/clients/tags, a weekly timesheet, reports,
 CSV export, native tray/menu-bar controls, global shortcuts, opt-in idle review, and local
-backup/restore. No account, no cloud, no telemetry, no network calls.
+backup/restore. No account, no cloud, no telemetry. The only optional network feature is a
+user-triggered AI summary using your own Gemini API key.
 
 ![TempoDesk time tracker](docs/screenshots/tracker-final.png)
 
@@ -14,7 +15,7 @@ but **not tested** on this host; see [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SU
 P1 features (calendar timeline, Pomodoro, foreground-app auto-tracking, PDF/XLSX, sync) are out of
 scope and were not started.
 
-- 42 Rust tests (34 unit + 8 integration), 22 TypeScript/Vitest tests.
+- 47 Rust tests (39 unit + 8 integration), 22 TypeScript/Vitest tests.
 - Real UI flows verified through WebView2 DevTools automation (create project, timer, manual
   entries, edit/delete/undo, overnight validation, tags/clients/projects, timesheet cell editor,
   reports filters, backup/restore, CSV totals, idle review, crash recovery, quit policies,
@@ -121,6 +122,9 @@ TempoDesk deliberately separates production, development, and test profiles:
    the visible filters.
 10. **Backup/restore**: *Settings → Data & backup*; create a backup, delete an entry, restore, and
     observe totals recover. A safety backup is written before restore.
+11. **Optional summary**: *Reports → Generate summary* works offline. To use AI, configure a Gemini
+    key in *Settings → AI summaries*, accept the data-sharing notice, then generate a day, week, or
+    month summary from Reports/Timesheet/Tracker.
 
 Uninstall later from *Settings → Apps → TempoDesk* or the installed `uninstall.exe`. User data stays
 in `%APPDATA%\com.tempodesk.desktop` unless you delete it.
@@ -133,6 +137,9 @@ in `%APPDATA%\com.tempodesk.desktop` unless you delete it.
   support, overlap warnings, sub-minute precision.
 - **Bulk actions**: multi-select history entries, delete a batch in one transaction, and undo the
   whole batch; running entries are excluded.
+- **High-level summaries**: deterministic local summaries plus optional AI summaries for any
+  day/week/month range. AI uses a Gemini API key stored in the OS credential store; requests are
+  made only when you click Generate.
 - **Organization**: clients, projects (color, client link, default billable), tags; archive and
   soft-delete semantics that never erase history.
 - **History**: date range presets/custom, project/client/tag/billable filters, description search,
@@ -187,7 +194,8 @@ scripts/                  # launch smoke + WebView2 CDP UI verification scripts
 `list/save/archive` for clients, projects and tags,
 `get_timesheet`, `get_report`, `export_report_csv`, idle review list/resolve,
 `get/update_settings`, `save_backup`, `preview_restore`, `restore_backup`, `quit_app`,
-`get_platform_info`, `get_shortcut_status`.
+`get_platform_info`, `get_shortcut_status`, `get_ai_status`, `set_ai_api_key`,
+`delete_ai_api_key`, `test_ai_connection`, `generate_summary`.
 
 Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-changed`,
 `idle-review-required`, `shortcut-status`, `window-focused`, `quit-requested`, `navigate`,
@@ -201,8 +209,12 @@ Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-chan
 - Development database: sibling `com.tempodesk.desktop.dev`; test databases live under
   `.test-data/` in this repository and are git-ignored.
 - Pre-restore safety backups: `<app-data>/backups/`.
-- No network calls, analytics, accounts, or cloud. No screenshots/keystrokes/URLs/window titles.
-  Idle detection is opt-in, local-only, and only reads the OS aggregate idle duration.
+- No network calls by default and no background network activity. The only network feature is
+  optional AI summaries: when enabled and explicitly triggered, aggregated timesheet data for the
+  selected range (and task descriptions if enabled) is sent to Google Gemini using your API key.
+  Local summaries never leave the device.
+- No analytics, accounts, cloud sync, screenshots/keystrokes/URLs/window titles. Idle detection is
+  opt-in, local-only, and only reads the OS aggregate idle duration.
 - Backups are plain-text JSON and can contain sensitive work/client names — store them privately.
 - Tauri capabilities are least-privilege. No filesystem or shell plugin is registered; file writes
   are limited to validated absolute paths with `.csv`/`.json` extensions chosen through native
@@ -219,15 +231,33 @@ Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-chan
 | Close window to tray | On |
 | Launch at login | Off |
 | Idle detection | Off, 5-minute threshold when enabled |
+| AI summaries | Off; Gemini; model `gemini-2.5-flash`; descriptions included only after consent |
 | Open/hide shortcut | `CommandOrControl+Shift+T` |
 | Start/stop shortcut | `CommandOrControl+Shift+Y` |
 
 All are editable in Settings, stored locally.
 
+## AI summaries (optional)
+
+1. Open **Settings → AI summaries**.
+2. Toggle **Enable AI summaries**, review and accept the data-sharing notice, and optionally disable
+   sending task descriptions.
+3. Paste a Gemini API key and click **Save key**. It is stored in Windows Credential Manager /
+   macOS Keychain and is never returned by the app API or included in backups. The dev/test profiles
+   use separate credential accounts.
+4. Use **Generate AI summary** on Reports, **Summarize week** on Timesheet, or **Summarize today**
+   on the tracker. Use **Local only** (or leave AI disabled) for a fully offline summary.
+
+A request is made only when you click generate; there is no background call, retry loop, or
+telemetry. If the key is missing, invalid, rate-limited, or offline, TempoDesk keeps working and
+offers the local summary.
+
 ## Known limitations
 
 - **macOS is unverified** on this host (no macOS hardware). Guarded code exists; follow the
   verification checklist in [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SUPPORT.md).
+- **Live Gemini calls are unverified** without a real API key. Local summaries, consent gating,
+  prompt construction, response parsing, and OS credential-store round trips are tested.
 - **Global hotkeys could not be exercised by synthetic input** in the automation session. The
   shortcuts register successfully (status reports OK), invalid bindings and collisions are handled,
   and the toggle logic is shared/tray-tested; a physical key press must be verified manually.

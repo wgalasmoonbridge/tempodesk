@@ -32,7 +32,8 @@ linker warning (`.rsrc merge failure: multiple non-default manifests`) is benign
   uses a display-only monotonic ticker.
 - **Native integration:** native titlebar/menu, tray/menu bar, global shortcuts, OS theme, native
   dialogs, notifications with fallback, autostart, single instance, close-to-tray.
-- **Privacy:** zero network calls/telemetry; idle detection off by default; no surveillance.
+- **Privacy:** no telemetry or background network; the only network feature is an explicit,
+  user-triggered AI summary. Idle detection is off by default; no surveillance.
 
 ## Milestones
 
@@ -62,7 +63,7 @@ render, settings persisted, `npm run check` passes.
 | M1-6 | Local-midnight/DST-safe day math | L | [x] |
 
 **Exit evidence:** AC-01, AC-04, AC-05, AC-06, AC-08 pass (Rust + real UI). Kill/relaunch recovery
-verified. Overnight 23:30→00:30 splits correctly. 42 Rust tests total (34 unit + 8 integration).
+verified. Overnight 23:30→00:30 splits correctly. 47 Rust tests total (39 unit + 8 integration).
 
 ### M2 — Projects, clients, tags & history editing — **COMPLETE**
 | # | Task | Complexity | Status |
@@ -148,7 +149,7 @@ Legend: `[x]` implemented + verified on Windows (or noted partial).
 | FR-023 | First-run onboarding ≤3 steps | [x] 3-step flow verified (project step implemented, skipped in test run) |
 | FR-024 | Backup/restore validation + safety copy | [x] Rust + UI IPC delete/restore; invalid backup changes nothing |
 | FR-025 | Single instance + versioned migrations | [x] second launch focuses first; migrations + user_version tested |
-| FR-026 | Local-only, least privilege, typed/validated IPC | [x] no network code, CSP, no fs/shell plugin, command validation |
+| FR-026 | Local-only, least privilege, typed/validated IPC | [x] local by default; optional AI summary is user-triggered only; CSP, no fs/shell plugin, command validation |
 | FR-027 | Integrity: WAL, FK, transactions, indexes, integer time | [x] pragmas, constraints, integrity check on startup, casts avoided |
 
 ## Acceptance criteria verification matrix
@@ -165,7 +166,7 @@ Legend: `[x]` implemented + verified on Windows (or noted partial).
 | AC-08 | **Pass** | Kill/relaunch recovery review |
 | AC-09 | **Pass** | UI tag/client/project flows + report/CSV totals |
 | AC-10 | **Pass** | Rust filter/CSV consistency + UI project filter |
-| AC-11 | **Pass** | No network code; all flows work offline |
+| AC-11 | **Pass** | All P0 flows work offline with no network; AI summaries are optional and never required |
 | AC-12 | **Partial (manual)** | Light/dark/system overrides verified; live OS theme switch manual |
 | AC-13 | **Pass** | Real OS idle API, one review/episode, explicit actions, split persisted |
 | AC-14 | **Manual** | In-app fallback verified; denied notification permission not exercised |
@@ -182,6 +183,11 @@ Legend: `[x]` implemented + verified on Windows (or noted partial).
   (`com.tempodesk.desktop.dev`, `TEMPO_DATA_DIR` test profiles) and cannot open installed-app data;
   UI automation refuses production profiles unless explicitly opted in. Verified with the installed
   production app left running during dev/tests.
+- Optional high-level summaries added: deterministic local summaries for day/week/month ranges,
+  plus opt-in Gemini AI summaries using a key in the OS credential store. AI is never automatic,
+  sends only the selected range aggregation, and falls back to local summaries. This is an explicit
+  post-MVP deviation from the PRD’s “no network calls” baseline: the network is used only after the
+  user enables AI, accepts the data-sharing notice, and clicks Generate.
 
 ## Deviations from PRD
 

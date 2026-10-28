@@ -55,6 +55,7 @@ node scripts/ui-resize.mjs      # 860x700 responsive layout
 node scripts/ui-closepref.mjs   # close-to-tray off → quit dialog
 node scripts/check-scroll.mjs   # content pane has a working vertical scroll range
 node scripts/ui-bulk-delete.mjs # self-contained bulk select/delete/undo + running guard
+node scripts/ui-ai-summary.mjs  # AI settings, fake test-profile key round trip, local summaries
 node scripts/ui-capture.mjs     # screenshots
 ```
 
@@ -105,6 +106,8 @@ Do not run them while actively using TempoDesk.
   adapted to a LaunchAgent check.
 - `ui-shortcuts.mjs` documents shortcut registration/invalid-binding checks, but **synthetic global
   hotkey presses were blocked in the automation session**; verify physical presses manually.
+- `ui-ai-summary.mjs` uses a clearly fake key and removes it afterwards. Keyring accounts are
+  per-profile, so it cannot touch a production Gemini key.
 - Tray menu clicks, native notification permission, and native Save/Open dialog clicks cannot be
   automated this way; use the manual checklist in `docs/PLATFORM_SUPPORT.md`.
 - Scripts are stateful and ordered. Use a fresh launcher run for a clean profile.

@@ -13,6 +13,7 @@ tempodesk-core (core/)  ← no Tauri dependency, unit/integration tested
    ├── domain::timer        start/stop/switch/resume/update/delete/recovery
    ├── domain::idle         keep/exclude/stop-at-idle review resolution
    ├── domain::reports      timesheet + report aggregation + CSV
+   ├── domain::summary      local summary, AI prompt, Gemini response parsing
    ├── domain::portability  versioned JSON backup / validated restore
    ├── domain::timeutil     local-day/DST math
    ├── domain::validate     payload + time validation
@@ -153,7 +154,10 @@ synchronized with the OS on every settings update.
 
 ## 8. Security / IPC
 
-- No `execute_sql`, shell, or arbitrary filesystem command is exposed.
+- No `execute_sql`, shell, or arbitrary filesystem command is exposed. The optional AI summary is the
+  only outbound network feature: a user click sends the selected range aggregation to Gemini over
+  HTTPS. The API key lives in the OS credential store (per data profile) and is never returned over
+  IPC, logged, or backed up. AI is disabled by default and requires explicit consent.
 - Writes require an absolute destination with `.csv`/`.json` extension and an existing parent
   directory; paths come from native Save/Open dialogs. No unrestricted filesystem plugin is
   initialized.

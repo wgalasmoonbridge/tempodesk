@@ -26,6 +26,7 @@ import {
   zonedDateKey,
 } from "../../lib/time";
 import { BarChart } from "./BarChart";
+import { SummaryPanel } from "../summary/SummaryPanel";
 
 type SortKey = "start" | "duration" | "description" | "project" | "billable";
 type SortDirection = "asc" | "desc";
@@ -352,6 +353,8 @@ export function ReportsPage() {
               </div>
             </div>
           </div>
+
+          <SummaryPanel filter={filter} />
 
           <section className="card chart-card" aria-labelledby="daily-chart-heading">
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>

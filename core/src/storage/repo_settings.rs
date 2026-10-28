@@ -46,6 +46,20 @@ fn normalize_loaded(settings: &mut AppSettings) {
     if settings.toggle_shortcut.trim().is_empty() {
         settings.toggle_shortcut = "CommandOrControl+Shift+Y".into();
     }
+    if settings.ai_provider != "gemini" {
+        settings.ai_provider = "gemini".into();
+    }
+    let model = settings.ai_model.trim();
+    if model.is_empty()
+        || model.chars().count() > 80
+        || !model
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
+    {
+        settings.ai_model = "gemini-2.5-flash".into();
+    } else {
+        settings.ai_model = model.to_string();
+    }
 }
 
 pub fn save_all(conn: &Connection, settings: &AppSettings) -> Result<()> {
@@ -144,6 +158,37 @@ pub fn apply_patch(settings: &mut AppSettings, patch: &SettingsPatch) -> Result<
     if let Some(value) = patch.tray_explained {
         settings.tray_explained = value;
     }
+    if let Some(value) = patch.ai_summaries_enabled {
+        settings.ai_summaries_enabled = value;
+    }
+    if let Some(value) = &patch.ai_provider {
+        if value != "gemini" {
+            return Err(AppError::validation(
+                "Only the Gemini provider is supported in this version",
+            ));
+        }
+        settings.ai_provider = value.clone();
+    }
+    if let Some(value) = &patch.ai_model {
+        let model = value.trim();
+        if model.is_empty()
+            || model.chars().count() > 80
+            || !model
+                .chars()
+                .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
+        {
+            return Err(AppError::validation(
+                "Model must contain only letters, digits, dots, dashes, or underscores",
+            ));
+        }
+        settings.ai_model = model.to_string();
+    }
+    if let Some(value) = patch.ai_consent {
+        settings.ai_consent = value;
+    }
+    if let Some(value) = patch.ai_include_descriptions {
+        settings.ai_include_descriptions = value;
+    }
     Ok(())
 }
 
@@ -241,5 +286,61 @@ mod tests {
             get_runtime(&conn, "last_heartbeat_utc").unwrap().as_deref(),
             Some("123")
         );
+    }
+}
+
+#[cfg(test)]
+mod ai_settings_tests {
+    use super::*;
+    use crate::storage::db;
+
+    #[test]
+    fn ai_settings_validate_provider_model_and_persist() {
+        let conn = db::open_in_memory().unwrap();
+        let updated = update(
+            &conn,
+            &SettingsPatch {
+                ai_summaries_enabled: Some(true),
+                ai_consent: Some(true),
+                ai_include_descriptions: Some(false),
+                ai_model: Some("gemini-2.5-flash".into()),
+                ..Default::default()
+            },
+            1000,
+        )
+        .unwrap();
+        assert!(updated.ai_summaries_enabled);
+        assert!(updated.ai_consent);
+        assert!(!updated.ai_include_descriptions);
+        assert_eq!(updated.ai_model, "gemini-2.5-flash");
+        assert_eq!(updated.ai_provider, "gemini");
+
+        let loaded = load(&conn).unwrap();
+        assert!(loaded.ai_summaries_enabled);
+        assert_eq!(loaded.ai_model, "gemini-2.5-flash");
+
+        assert!(update(
+            &conn,
+            &SettingsPatch {
+                ai_provider: Some("other".into()),
+                ..Default::default()
+            },
+            2000
+        )
+        .is_err());
+        assert!(update(
+            &conn,
+            &SettingsPatch {
+                ai_model: Some("bad model name".into()),
+                ..Default::default()
+            },
+            3000
+        )
+        .is_err());
+        // Invalid stored model strings are normalized rather than crashing startup.
+        let mut damaged = loaded;
+        damaged.ai_model = "bad model!".into();
+        save_all(&conn, &damaged).unwrap();
+        assert_eq!(load(&conn).unwrap().ai_model, "gemini-2.5-flash");
     }
 }

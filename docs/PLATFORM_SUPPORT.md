@@ -19,6 +19,8 @@ FFI, but it is **unverified** until tested on real hardware/CI.
 | OS theme following | Light/dark/system overrides **verified**; live OS switch not toggled | Same `matchMedia` path; unverified |
 | Native notifications | Implemented; permission prompt not exercised; in-app fallback **verified** | Requires notification permission at first send/request; unverified |
 | Idle detection | **Verified** with `GetLastInputInfo` (opt-in) | Implemented via `CGEventSourceSecondsSinceLastEventType` (combined session, no window content); unverified |
+| AI API key storage | **Verified** Windows Credential Manager (per-profile accounts); fake test key set/removed | Implemented with Keychain (`apple-native`); unverified |
+| AI summaries | Local summaries **verified**; Gemini request path compiled, key storage verified, live call not tested without a key | Local summaries implemented; Gemini live call unverified |
 | Autostart | **Verified** (HKCU Run create/remove + hidden `--autostart` launch; second launch shows window) | Implemented via LaunchAgent; unverified |
 | SQLite data dir | **Verified** `%APPDATA%\com.tempodesk.desktop\tempodesk.db` | `~/Library/Application Support/com.tempodesk.desktop/tempodesk.db` |
 | Native Save/Open dialogs | Dialog plugin wired; backend writes verified; UI click-through manual | Same plugin; unverified |
@@ -91,7 +93,10 @@ Legend: **Verified** = run on this host; **Implemented** = code present, not run
 10. Create a backup and CSV using native Save dialogs; restore and compare totals.
 11. `npm run tauri:build`; install/open the `.dmg`, launch from Applications, confirm data under
     `~/Library/Application Support/com.tempodesk.desktop/`, and record results in this document.
-12. Run the CDP UI suite against the debug app if WebView2-equivalent remote debugging is available
+12. Configure Gemini in Settings → AI summaries; verify Keychain save/remove, consent gating, model
+    validation, Test connection, a real AI summary, and the “Use local summary” fallback after
+    revoking the key or going offline.
+13. Run the CDP UI suite against the debug app if WebView2-equivalent remote debugging is available
     (WKWebView inspection differs; otherwise use manual checks above).
 
 ## Linux

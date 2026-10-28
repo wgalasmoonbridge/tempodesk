@@ -5,6 +5,7 @@ import {
   Inbox,
   ListChecks,
   Search,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -38,6 +39,7 @@ import { RunningCard } from "./RunningCard";
 import { EntryRow } from "./EntryRow";
 import { IdleReviewBanner } from "./IdleReviewBanner";
 import { EntryDialog } from "../entries/EntryDialog";
+import { SummaryPanel } from "../summary/SummaryPanel";
 import { dayLabel } from "../../lib/format";
 
 type Preset = "last7" | "today" | "week" | "all" | "custom";
@@ -91,6 +93,7 @@ export function TrackerPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [resumeTarget, setResumeTarget] = useState<TimeEntry | null>(null);
   const [resumeBusy, setResumeBusy] = useState(false);
   const [pendingSwitch, setPendingSwitch] = useState<StartTimerInput | null>(null);
@@ -474,6 +477,14 @@ export function TrackerPage() {
             One timer per device. Starting a new session can stop the current one atomically.
           </div>
         </div>
+        <div className="page-header-actions">
+          <Button
+            icon={<Sparkles size={14} aria-hidden="true" />}
+            onClick={() => setSummaryOpen(true)}
+          >
+            Summarize today
+          </Button>
+        </div>
       </div>
 
       <RunningCard
@@ -769,6 +780,25 @@ export function TrackerPage() {
         entry={editEntry}
         onClose={() => setEditEntry(null)}
       />
+
+      <Dialog
+        open={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        title="Today's summary"
+        description={`${formatDateLong(today)} · generated from today's tracked time`}
+        wide
+        footer={
+          <>
+            <span className="spacer" />
+            <Button onClick={() => setSummaryOpen(false)}>Close</Button>
+          </>
+        }
+      >
+        <SummaryPanel
+          embedded
+          filter={{ dateFrom: today, dateTo: today, timezone }}
+        />
+      </Dialog>
 
       <ConfirmDialog
         open={bulkDeleteOpen}

@@ -261,6 +261,11 @@ export interface AppSettings {
   toggleShortcut: string;
   onboardingComplete: boolean;
   trayExplained: boolean;
+  aiSummariesEnabled: boolean;
+  aiProvider: "gemini" | string;
+  aiModel: string;
+  aiConsent: boolean;
+  aiIncludeDescriptions: boolean;
 }
 
 export interface SettingsPatch {
@@ -277,6 +282,11 @@ export interface SettingsPatch {
   toggleShortcut?: string;
   onboardingComplete?: boolean;
   trayExplained?: boolean;
+  aiSummariesEnabled?: boolean;
+  aiProvider?: string;
+  aiModel?: string;
+  aiConsent?: boolean;
+  aiIncludeDescriptions?: boolean;
 }
 
 export interface SettingsUpdateResult {
@@ -339,6 +349,34 @@ export interface BackupPreview {
 export interface RestoreResult {
   counts: BackupCounts;
   safetyBackupPath: string;
+}
+
+export interface AiStatus {
+  enabled: boolean;
+  provider: string;
+  model: string;
+  consent: boolean;
+  includeDescriptions: boolean;
+  keyConfigured: boolean;
+  keyError: string | null;
+}
+
+export interface AiTestResult {
+  ok: boolean;
+  message: string;
+  model: string;
+  latencyMs: number;
+}
+
+export interface SummaryResult {
+  text: string;
+  mode: "local" | "ai";
+  provider: string | null;
+  model: string | null;
+  generatedAtUtc: number;
+  rangeLabel: string;
+  totalSeconds: number;
+  warning: string | null;
 }
 
 export type IdleAction = "keep" | "exclude" | "stop_at_idle";

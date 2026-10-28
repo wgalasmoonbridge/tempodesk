@@ -15,7 +15,7 @@ rusqlite 0.40.2 (bundled SQLite).
 
 | Area | Result |
 |---|---|
-| Rust unit tests (`tempodesk-core`) | **34 passed** |
+| Rust unit tests (`tempodesk-core`) | **39 passed** |
 | Rust integration tests (filters, CSV, 10k, timer, tag history, bulk) | **8 passed** |
 | Frontend Vitest suites | **22 passed** (2 files) |
 | `tsc --noEmit` | Pass |
@@ -25,7 +25,7 @@ rusqlite 0.40.2 (bundled SQLite).
 | `cargo check` (Tauri shell) | Pass |
 | Debug app launch | Pass |
 | Release build | Pass |
-| NSIS installer build | Pass |
+| NSIS installer build | Pass (latest AI build: 7.07 MiB) |
 | Installer silent per-user install | Exit 0 |
 | Installed app launch + DB in app-data | Pass |
 | 10,000-entry report | **108.6 ms** (debug), totals exact |
@@ -58,6 +58,7 @@ npm run smoke -- --release  # blocked unless ALLOW_PRODUCTION_TESTS=1
 
 ### Unit tests (33)
 
+- **summary**: local summary totals/projects/tasks/tags/observations; empty ranges; prompt includes aggregates and respects the description-exclusion setting; Gemini success/error/blocked response parsing.
 - **timeutil**: local midnight, 23-hour spring-forward day, 25-hour fall-back day, DST elapsed
   seconds, cross-midnight split, report-range clipping, week start (Mon/Sun).
 - **timer/idle**: unaligned stop timestamps, idle review once per episode, keep, exclude split into
@@ -126,6 +127,7 @@ recovery/quit.
 | `check-hidden-timer` (manual follow-up) | Start timer → WM_CLOSE hides window (visible=false) → wait → second launch restores first instance → same active entry, elapsed grew from ~0 to 17 s; single process | Pass |
 | `check-installed` | Installed package launches, platform info reports `%APPDATA%\com.tempodesk.desktop\tempodesk.db`, UI rendered | Pass |
 | `ui-bulk-delete` | Select two entries, bulk-delete (only those two soft-deleted with one transaction timestamp), third entry untouched, batch Undo restores both; Select-all excludes the running entry; self-contained fixtures | Pass |
+| `ui-ai-summary` | AI settings consent/enable, fake Gemini key saved to and removed from the test-profile OS credential store (never returned by IPC/settings), local weekly summary in Reports, weekly summary from Timesheet, daily summary from Tracker | Pass |
 | Profile isolation | Installed production app (pid 2284) stayed running while a Dev build reported `dataProfile: development` at `%APPDATA%\com.tempodesk.desktop.dev`, and the test launcher reported `dataProfile: test` at `.test-data/run-*`; bulk actions ran only on the test DB. `npm run smoke` uses a test directory; release smoke refused without `ALLOW_PRODUCTION_TESTS=1`. | Pass |
 
 ### Screenshots (evidence)
@@ -144,6 +146,7 @@ recovery/quit.
 - `responsive-860.png`
 - `scroll-fixed.png` — vertical scrolling in the reports view after the fix
 - `bulk-select.png`, `bulk-confirm.png` — bulk selection toolbar and batch delete confirmation
+- `ai-settings.png`, `ai-key-configured.png`, `ai-summary-local.png` — AI configuration, configured key, and offline high-level summary
 - `installed-app.png`
 
 ## 5. Acceptance criteria matrix
@@ -163,7 +166,7 @@ OS interaction; **Unverified** = cannot be tested on this host.
 | AC-08 | **Pass** | Process kill + relaunch → recovery modal → stop at last seen; no silent loss. |
 | AC-09 | **Pass** | UI tag attach/rename/archive/delete, project/client classification; Rust report/CSV consistency. |
 | AC-10 | **Pass** | Rust filter matrix + project filter UI + CSV total equality; report and CSV row counts agree. |
-| AC-11 | **Pass** | No network code or telemetry; all flows above ran offline (no network configured). |
+| AC-11 | **Pass** | All P0 flows work offline with no network; the new AI summary is optional, explicit, and has a local fallback. Tests ran without contacting Gemini. |
 | AC-12 | **Partial / Manual** | Light/dark/system overrides verified; OS `prefers-color-scheme` change not toggled at OS level. Code listens for the change. |
 | AC-13 | **Pass** | Real Windows idle API enabled: one banner per episode, Keep/Remove/End actions; split persisted; disabled by default; no auto-delete. |
 | AC-14 | **Manual / Unverified** | In-app fallback banner always shown; permission request implemented. OS notification denial flow was not exercised. |
@@ -200,6 +203,7 @@ OS interaction; **Unverified** = cannot be tested on this host.
 
 ## 7. Not tested (explicit)
 
+- **Live Gemini API call**: not verified without a real API key; request/response parsing, keyring storage, consent gating, and local fallback were tested. The key was never stored in production profile during tests.
 - **macOS** anything: build, tray/menu bar, CoreGraphics idle, notifications permission, global
   hotkeys, LaunchAgent autostart, DMG/installer, WKWebView rendering.
 - **Physical global hotkey press** on Windows (synthetic input blocked by the automation session).
@@ -242,7 +246,7 @@ documented there.
 
 - Debug build: `src-tauri/target/debug/tempodesk.exe` — launch smoke passed.
 - Release build: `src-tauri/target/release/tempodesk.exe` — launch smoke passed.
-- Installer: `src-tauri/target/release/bundle/nsis/TempoDesk_0.1.0_x64-setup.exe` (5.84 MiB), rebuilt after the final autostart/window changes.
+- Installer: `src-tauri/target/release/bundle/nsis/TempoDesk_0.1.0_x64-setup.exe` (7.07 MiB), rebuilt with AI summaries. It was **not installed** while the user’s production app was running; the earlier install/launch test remains valid for packaging, but the latest binary will be installed on the next closed-app install.
 - Silent install (`/S`) exit 0; installed to `%LOCALAPPDATA%\TempoDesk`; installed app launched and
   reported the roaming app-data DB path.
 - Linker warning on GNU: `.rsrc merge failure: multiple non-default manifests`; app/installer still

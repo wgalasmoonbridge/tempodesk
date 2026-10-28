@@ -10,12 +10,15 @@ import {
   HardDrive,
   Info,
   Keyboard,
+  KeyRound,
   Laptop,
+  Loader2,
   LockKeyhole,
   Monitor,
   Moon,
   Palette,
   ShieldCheck,
+  Sparkles,
   Sun,
   Timer,
   Upload,
@@ -28,7 +31,12 @@ import { Switch } from "../../components/Switch";
 import { useToast } from "../../components/Toast";
 import { useAppData } from "../../app/AppProvider";
 import { api, normalizeError } from "../../lib/ipc";
-import type { BackupPreview, SettingsPatch, ThemeSetting } from "../../lib/types";
+import type {
+  AiTestResult,
+  BackupPreview,
+  SettingsPatch,
+  ThemeSetting,
+} from "../../lib/types";
 import { formatShortcut } from "../../lib/time";
 
 type Section =
@@ -37,6 +45,7 @@ type Section =
   | "desktop"
   | "shortcuts"
   | "idle"
+  | "ai"
   | "data"
   | "privacy"
   | "about";
@@ -47,6 +56,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Timer }[] = [
   { id: "desktop", label: "Tray & startup", icon: Laptop },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "idle", label: "Idle detection", icon: Bell },
+  { id: "ai", label: "AI summaries", icon: Sparkles },
   { id: "data", label: "Data & backup", icon: Database },
   { id: "privacy", label: "Privacy", icon: ShieldCheck },
   { id: "about", label: "About", icon: Info },
@@ -68,7 +78,9 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
     settings,
     platform,
     shortcutStatus,
+    aiStatus,
     updateSettings,
+    refreshAiStatus,
     refreshAll,
     timezone,
   } = useAppData();
@@ -79,6 +91,12 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
   const [restoreSource, setRestoreSource] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [backupBusy, setBackupBusy] = useState(false);
+  const [aiKeyInput, setAiKeyInput] = useState("");
+  const [aiKeyBusy, setAiKeyBusy] = useState(false);
+  const [aiTestBusy, setAiTestBusy] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<AiTestResult | null>(null);
+  const [aiKeyMessage, setAiKeyMessage] = useState<string | null>(null);
+  const [aiModelInput, setAiModelInput] = useState(settings.aiModel);
 
   const [openShortcut, setOpenShortcut] = useState(settings.openShortcut);
   const [toggleShortcut, setToggleShortcut] = useState(settings.toggleShortcut);
@@ -95,6 +113,10 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
     settings.idleThresholdMinutes,
   ]);
 
+  useEffect(() => {
+    setAiModelInput(settings.aiModel);
+  }, [settings.aiModel]);
+
   const zones = useMemo(() => {
     const list = supportedTimeZones();
     if (settings.timezone !== "system" && !list.includes(settings.timezone)) {
@@ -107,7 +129,11 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
     setSaving(true);
     try {
       const result = await updateSettings(patch);
-      if (result.warnings.length > 0) {
+      const shortcutRelated =
+        patch.shortcutsEnabled !== undefined ||
+        patch.openShortcut !== undefined ||
+        patch.toggleShortcut !== undefined;
+      if (result.warnings.length > 0 && shortcutRelated) {
         pushToast({
           title: "Setting saved with a warning",
           message: result.warnings.join(" "),
@@ -149,6 +175,70 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
         if (status) setShortcutErrors(status.errors);
       }
     }
+  };
+
+  const saveAiKey = async () => {
+    if (!aiKeyInput.trim() || aiKeyBusy) return;
+    setAiKeyBusy(true);
+    setAiKeyMessage(null);
+    setAiTestResult(null);
+    try {
+      await api.setAiApiKey(aiKeyInput.trim());
+      setAiKeyInput("");
+      await refreshAiStatus();
+      setAiKeyMessage("API key saved in the OS credential store.");
+      pushToast({ title: "Gemini API key saved", tone: "success" });
+    } catch (error) {
+      const message = normalizeError(error).message;
+      setAiKeyMessage(message);
+      pushToast({ title: "Could not save the API key", message, tone: "error" });
+    } finally {
+      setAiKeyBusy(false);
+    }
+  };
+
+  const removeAiKey = async () => {
+    setAiKeyBusy(true);
+    setAiKeyMessage(null);
+    setAiTestResult(null);
+    try {
+      await api.deleteAiApiKey();
+      await refreshAiStatus();
+      setAiKeyMessage("API key removed from the OS credential store.");
+      pushToast({ title: "Gemini API key removed", tone: "success" });
+    } catch (error) {
+      const message = normalizeError(error).message;
+      setAiKeyMessage(message);
+      pushToast({ title: "Could not remove the API key", message, tone: "error" });
+    } finally {
+      setAiKeyBusy(false);
+    }
+  };
+
+  const testAi = async () => {
+    setAiTestBusy(true);
+    setAiTestResult(null);
+    setAiKeyMessage(null);
+    try {
+      const result = await api.testAiConnection();
+      setAiTestResult(result);
+      pushToast({ title: result.message, tone: "success" });
+    } catch (error) {
+      const message = normalizeError(error).message;
+      setAiKeyMessage(message);
+      pushToast({ title: "Gemini connection failed", message, tone: "error" });
+    } finally {
+      setAiTestBusy(false);
+    }
+  };
+
+  const saveAiModel = async () => {
+    const model = aiModelInput.trim();
+    if (!model) {
+      pushToast({ title: "Enter a Gemini model name", tone: "warning" });
+      return;
+    }
+    await save({ aiModel: model }, "AI model updated");
   };
 
   const backup = async () => {
@@ -693,6 +783,238 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
             </div>
           ) : null}
 
+          {section === "ai" ? (
+            <div className="settings-section">
+              <h2>AI summaries</h2>
+              <p>
+                Optional high-level summaries for a day, week, or month. Local summaries work fully
+                offline; AI summaries use your own Google Gemini API key.
+              </p>
+              <div className="card">
+                <div className="setting-row">
+                  <div className="setting-main">
+                    <div className="setting-title">Enable AI summaries</div>
+                    <div className="setting-desc">
+                      Off by default. Local summaries remain available without enabling this.
+                    </div>
+                  </div>
+                  <div className="setting-control">
+                    <Switch
+                      checked={settings.aiSummariesEnabled}
+                      label="Enable AI summaries"
+                      disabled={saving}
+                      onChange={(value) =>
+                        void save({ aiSummariesEnabled: value }, "AI preference updated")
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="setting-row">
+                  <div className="setting-main">
+                    <div className="setting-title">Provider</div>
+                    <div className="setting-desc">
+                      Gemini is the supported provider in this version. The endpoint is fixed to
+                      Google’s Generative Language API.
+                    </div>
+                  </div>
+                  <div className="setting-control">
+                    <select
+                      className="select"
+                      aria-label="AI provider"
+                      value={settings.aiProvider}
+                      disabled
+                    >
+                      <option value="gemini">Google Gemini</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="setting-row">
+                  <div className="setting-main">
+                    <div className="setting-title">Model</div>
+                    <div className="setting-desc">
+                      Example: gemini-2.5-flash. Use a model enabled for your API key.
+                    </div>
+                  </div>
+                  <div className="setting-control">
+                    <input
+                      className="input"
+                      aria-label="Gemini model"
+                      value={aiModelInput}
+                      spellCheck={false}
+                      onChange={(event) => setAiModelInput(event.target.value)}
+                    />
+                    <Button size="sm" onClick={() => void saveAiModel()} disabled={saving}>
+                      Save
+                    </Button>
+                  </div>
+                </div>
+                <div className="setting-row">
+                  <div className="setting-main">
+                    <div className="setting-title">Include task descriptions in AI requests</div>
+                    <div className="setting-desc">
+                      When off, only dates, totals, projects, clients, and tags are sent. Local
+                      summaries always use your local descriptions.
+                    </div>
+                  </div>
+                  <div className="setting-control">
+                    <Switch
+                      checked={settings.aiIncludeDescriptions}
+                      label="Include task descriptions in AI requests"
+                      disabled={saving}
+                      onChange={(value) =>
+                        void save(
+                          { aiIncludeDescriptions: value },
+                          "AI description preference updated",
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="setting-row">
+                  <div className="setting-main">
+                    <label className="check" style={{ alignItems: "flex-start" }}>
+                      <input
+                        type="checkbox"
+                        checked={settings.aiConsent}
+                        disabled={saving}
+                        onChange={(event) =>
+                          void save(
+                            { aiConsent: event.target.checked },
+                            event.target.checked ? "AI data-sharing notice accepted" : "AI consent withdrawn",
+                          )
+                        }
+                      />
+                      <span>
+                        I understand that when I click <strong>Generate AI summary</strong>,
+                        TempoDesk sends the selected range’s aggregated timesheet data
+                        {settings.aiIncludeDescriptions ? ", including task descriptions," : ""}{" "}
+                        to Google Gemini. No data is sent in the background.
+                      </span>
+                    </label>
+                  </div>
+                  <div className="setting-control">
+                    <span
+                      className={`badge ${settings.aiConsent ? "badge-teal" : "badge-danger"}`}
+                    >
+                      {settings.aiConsent ? "Consent recorded" : "Consent required"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="setting-row">
+                  <div className="setting-main">
+                    <div className="setting-title">
+                      Gemini API key{" "}
+                      <span
+                        className={`badge ${
+                          aiStatus?.keyConfigured ? "badge-teal" : "badge-danger"
+                        }`}
+                      >
+                        <KeyRound size={11} aria-hidden="true" />{" "}
+                        {aiStatus?.keyConfigured ? "Configured" : "Not configured"}
+                      </span>
+                    </div>
+                    <div className="setting-desc">
+                      Stored in the OS credential store (Windows Credential Manager / macOS
+                      Keychain). It is never returned by the app API, shown in logs, or included in
+                      backups.
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 9 }}>
+                      <input
+                        type="password"
+                        className="input"
+                        style={{ width: 280 }}
+                        aria-label="Gemini API key"
+                        placeholder={
+                          aiStatus?.keyConfigured
+                            ? "•••••••• configured — paste a new key to replace"
+                            : "Paste your Gemini API key"
+                        }
+                        value={aiKeyInput}
+                        autoComplete="off"
+                        spellCheck={false}
+                        onChange={(event) => setAiKeyInput(event.target.value)}
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => void saveAiKey()}
+                        disabled={aiKeyBusy || !aiKeyInput.trim()}
+                      >
+                        {aiKeyBusy ? "Saving…" : "Save key"}
+                      </Button>
+                      {aiStatus?.keyConfigured ? (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => void testAi()}
+                            disabled={aiTestBusy}
+                            icon={
+                              aiTestBusy ? (
+                                <Loader2 size={13} aria-hidden="true" className="spin" />
+                              ) : undefined
+                            }
+                          >
+                            {aiTestBusy ? "Testing…" : "Test connection"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => void removeAiKey()}
+                            disabled={aiKeyBusy}
+                          >
+                            Remove key
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+                    {aiStatus?.keyError ? (
+                      <div className="dialog-error" role="alert" style={{ marginTop: 10 }}>
+                        <span>{aiStatus.keyError}</span>
+                      </div>
+                    ) : null}
+                    {aiKeyMessage ? (
+                      <div
+                        className="banner info"
+                        role="status"
+                        style={{ marginTop: 10, padding: "8px 10px" }}
+                      >
+                        <p style={{ margin: 0 }}>{aiKeyMessage}</p>
+                      </div>
+                    ) : null}
+                    {aiTestResult ? (
+                      <div className="banner info" role="status" style={{ marginTop: 10 }}>
+                        <div>
+                          <h3>{aiTestResult.message}</h3>
+                          <p>
+                            {aiTestResult.model} · {aiTestResult.latencyMs} ms
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div className="banner info">
+                <div className="banner-icon">
+                  <ShieldCheck size={16} aria-hidden="true" />
+                </div>
+                <div>
+                  <h3>Network and privacy</h3>
+                  <p>
+                    AI summaries are the only network feature. A request is made only when you
+                    click Generate, never in the background. Create a Gemini key in Google AI
+                    Studio (aistudio.google.com/app/apikey). Without a key, daily/weekly/monthly
+                    summaries still work locally and fully offline.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {section === "data" ? (
             <div className="settings-section">
               <h2>Data & backup</h2>
@@ -770,10 +1092,10 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
               <div className="card">
                 <div className="setting-row">
                   <div className="setting-main">
-                    <div className="setting-title">No network calls</div>
+                    <div className="setting-title">No background network calls</div>
                     <div className="setting-desc">
-                      The MVP makes zero essential or background network requests. No account,
-                      cloud, analytics, or telemetry.
+                      TempoDesk makes no network requests unless you explicitly generate an AI
+                      summary. There is no account, cloud sync, analytics, or telemetry.
                     </div>
                   </div>
                   <div className="setting-control">

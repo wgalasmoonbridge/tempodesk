@@ -221,7 +221,7 @@ export function Onboarding() {
             </div>
             <div className="feature-item">
               <WifiOff size={15} aria-hidden="true" />
-              <span>No account, no network calls, no telemetry — works completely offline.</span>
+              <span>No account or telemetry. AI summaries are optional and only run when you ask.</span>
             </div>
             <div className="feature-item">
               <LockKeyhole size={15} aria-hidden="true" />

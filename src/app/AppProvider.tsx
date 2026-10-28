@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { api, normalizeError } from "../lib/ipc";
 import type {
+  AiStatus,
   AppSettings,
   AppStatus,
   Client,
@@ -40,6 +41,11 @@ const DEFAULT_SETTINGS: AppSettings = {
   toggleShortcut: "CommandOrControl+Shift+Y",
   onboardingComplete: false,
   trayExplained: false,
+  aiSummariesEnabled: false,
+  aiProvider: "gemini",
+  aiModel: "gemini-2.5-flash",
+  aiConsent: false,
+  aiIncludeDescriptions: true,
 };
 
 interface AppContextValue {
@@ -54,11 +60,13 @@ interface AppContextValue {
   tags: Tag[];
   idleReviews: IdleReview[];
   shortcutStatus: ShortcutStatus | null;
+  aiStatus: AiStatus | null;
   dataVersion: number;
   updateSettings: (patch: SettingsPatch) => Promise<SettingsUpdateResult>;
   refreshStatus: () => Promise<void>;
   refreshMeta: () => Promise<void>;
   refreshIdle: () => Promise<void>;
+  refreshAiStatus: () => Promise<void>;
   refreshAll: () => Promise<void>;
   setStatus: (status: AppStatus) => void;
   bumpData: () => void;
@@ -78,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [idleReviews, setIdleReviews] = useState<IdleReview[]>([]);
   const [shortcutStatus, setShortcutStatus] = useState<ShortcutStatus | null>(null);
+  const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
 
   const settingsRef = useRef(settings);
@@ -132,18 +141,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [pushToast]);
 
+  const refreshAiStatus = useCallback(async () => {
+    try {
+      setAiStatus(await api.getAiStatus());
+    } catch {
+      /* Diagnostic only; key errors are reported inside AiStatus when available. */
+    }
+  }, []);
+
   const refreshAll = useCallback(async () => {
-    await Promise.all([refreshStatus(), refreshMeta(), refreshIdle()]);
-  }, [refreshStatus, refreshMeta, refreshIdle]);
+    await Promise.all([refreshStatus(), refreshMeta(), refreshIdle(), refreshAiStatus()]);
+  }, [refreshStatus, refreshMeta, refreshIdle, refreshAiStatus]);
 
   const updateSettings = useCallback(
     async (patch: SettingsPatch) => {
       const result = await api.updateSettings(patch);
       setSettings(result.settings);
       bumpData();
+      void refreshAiStatus();
       return result;
     },
-    [bumpData],
+    [bumpData, refreshAiStatus],
   );
 
   // Initial load.
@@ -177,6 +195,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setShortcutStatus(await api.getShortcutStatus());
         } catch {
           /* shortcut status is diagnostic only */
+        }
+        try {
+          setAiStatus(await api.getAiStatus());
+        } catch {
+          /* AI/keychain status is diagnostic only */
         }
         setReady(true);
       } catch (error) {
@@ -224,6 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (payload && typeof payload === "object") {
         setSettings(payload as AppSettings);
         bumpData();
+        void refreshAiStatus();
       }
     });
     void add("idle-review-required", () => {
@@ -236,6 +260,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void add("window-focused", () => {
       void refreshStatus();
       void refreshIdle();
+      void refreshAiStatus();
     });
     void add("app-error", (payload) => {
       if (payload && typeof payload === "object") {
@@ -252,7 +277,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       disposed = true;
       for (const unlisten of unsubs) unlisten();
     };
-  }, [refreshStatus, refreshMeta, refreshIdle, bumpData, pushToast]);
+  }, [refreshStatus, refreshMeta, refreshIdle, refreshAiStatus, bumpData, pushToast]);
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -267,11 +292,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       tags,
       idleReviews,
       shortcutStatus,
+      aiStatus,
       dataVersion,
       updateSettings,
       refreshStatus,
       refreshMeta,
       refreshIdle,
+      refreshAiStatus,
       refreshAll,
       setStatus,
       bumpData,
@@ -288,11 +315,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       tags,
       idleReviews,
       shortcutStatus,
+      aiStatus,
       dataVersion,
       updateSettings,
       refreshStatus,
       refreshMeta,
       refreshIdle,
+      refreshAiStatus,
       refreshAll,
       bumpData,
     ],

@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  AiStatus,
+  AiTestResult,
   AppSettings,
   AppStatus,
   BackupPreview,
@@ -27,6 +29,7 @@ import type {
   SettingsUpdateResult,
   ShortcutStatus,
   StartTimerInput,
+  SummaryResult,
   Tag,
   TagInput,
   TimeEntry,
@@ -100,6 +103,13 @@ export const api = {
   updateSettings: (patch: SettingsPatch) =>
     call<SettingsUpdateResult>("update_settings", { patch }),
   getShortcutStatus: () => call<ShortcutStatus>("get_shortcut_status"),
+
+  getAiStatus: () => call<AiStatus>("get_ai_status"),
+  setAiApiKey: (apiKey: string) => call<AiStatus>("set_ai_api_key", { apiKey }),
+  deleteAiApiKey: () => call<AiStatus>("delete_ai_api_key"),
+  testAiConnection: () => call<AiTestResult>("test_ai_connection"),
+  generateSummary: (filter: ReportFilter, useAi: boolean) =>
+    call<SummaryResult>("generate_summary", { filter, useAi }),
 
   saveBackup: (destination: string) =>
     call<BackupResult>("save_backup", { destination }),
