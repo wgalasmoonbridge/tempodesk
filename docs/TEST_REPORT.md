@@ -135,6 +135,7 @@ recovery/quit.
 - `idle-review.png`
 - `recovery-modal.png`, `quit-dialog.png`
 - `responsive-860.png`
+- `scroll-fixed.png` — vertical scrolling in the reports view after the fix
 - `installed-app.png`
 
 ## 5. Acceptance criteria matrix
@@ -183,6 +184,11 @@ OS interaction; **Unverified** = cannot be tested on this host.
    `aria-label`s.
 6. **Timesheet row duplicated the project name** and showed `1 sessions`; corrected to “1 session”
    and sub-minute cells show seconds.
+7. **Main content could not scroll vertically** (reported after initial build). The `.app` CSS grid’s
+   implicit row auto-sized to its content, so `.main`/`.content` grew to 1056px inside a 740px window
+   while `.app` hid overflow. Fixed with `grid-template-rows: minmax(0, 1fr)` and `min-height: 0` on
+   the flex/grid children. Verified on the real window: `.content` 684px client height / 1146px
+   scroll height, programmatic scroll to 300px works (max 462px); screenshot `scroll-fixed.png`.
 
 ## 7. Not tested (explicit)
 

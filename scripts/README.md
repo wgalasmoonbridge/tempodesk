@@ -43,6 +43,7 @@ node scripts/ui-idle.mjs        # real idle API + review split
 node scripts/ui-settings2.mjs   # cell editor, report filter, week start, autostart
 node scripts/ui-resize.mjs      # 860x700 responsive layout
 node scripts/ui-closepref.mjs   # close-to-tray off → quit dialog
+node scripts/check-scroll.mjs   # installed/debug app: content pane has a working scroll range
 node scripts/ui-capture.mjs     # screenshots
 ```
 
