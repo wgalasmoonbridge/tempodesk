@@ -44,6 +44,7 @@ node scripts/ui-settings2.mjs   # cell editor, report filter, week start, autost
 node scripts/ui-resize.mjs      # 860x700 responsive layout
 node scripts/ui-closepref.mjs   # close-to-tray off → quit dialog
 node scripts/check-scroll.mjs   # installed/debug app: content pane has a working scroll range
+node scripts/ui-bulk-delete.mjs # self-contained bulk select/delete/undo + running guard
 node scripts/ui-capture.mjs     # screenshots
 ```
 

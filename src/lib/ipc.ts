@@ -4,6 +4,8 @@ import type {
   AppStatus,
   BackupPreview,
   BackupResult,
+  BulkDeleteResult,
+  BulkRestoreResult,
   Client,
   ClientInput,
   CreatedEntry,
@@ -58,6 +60,10 @@ export const api = {
     call<CreatedEntry>("update_entry", { id, input }),
   deleteEntry: (id: string) => call<void>("delete_entry", { id }),
   restoreEntry: (id: string) => call<TimeEntry>("restore_entry", { id }),
+  deleteEntries: (ids: string[]) =>
+    call<BulkDeleteResult>("delete_entries", { ids }),
+  restoreEntries: (ids: string[]) =>
+    call<BulkRestoreResult>("restore_entries", { ids }),
 
   listClients: (includeArchived = false) =>
     call<Client[]>("list_clients", { includeArchived }),

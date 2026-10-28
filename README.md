@@ -14,7 +14,7 @@ but **not tested** on this host; see [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SU
 P1 features (calendar timeline, Pomodoro, foreground-app auto-tracking, PDF/XLSX, sync) are out of
 scope and were not started.
 
-- 41 Rust tests (34 unit + 7 integration), 22 TypeScript/Vitest tests.
+- 42 Rust tests (34 unit + 8 integration), 22 TypeScript/Vitest tests.
 - Real UI flows verified through WebView2 DevTools automation (create project, timer, manual
   entries, edit/delete/undo, overnight validation, tags/clients/projects, timesheet cell editor,
   reports filters, backup/restore, CSV totals, idle review, crash recovery, quit policies,
@@ -106,6 +106,8 @@ in `%APPDATA%\com.tempodesk.desktop` unless you delete it.
   display ticker, crash/sleep/clock-gap recovery review.
 - **Manual entries**: create/edit/delete with soft-delete undo, strict validation, overnight
   support, overlap warnings, sub-minute precision.
+- **Bulk actions**: multi-select history entries, delete a batch in one transaction, and undo the
+  whole batch; running entries are excluded.
 - **Organization**: clients, projects (color, client link, default billable), tags; archive and
   soft-delete semantics that never erase history.
 - **History**: date range presets/custom, project/client/tag/billable filters, description search,
@@ -156,7 +158,8 @@ scripts/                  # launch smoke + WebView2 CDP UI verification scripts
 
 `get_app_status`, `start_timer`, `switch_timer`, `stop_timer`, `resume_entry`,
 `resolve_recovery`, `list_entries`, `create_manual_entry`, `update_entry`,
-`delete_entry`/`restore_entry`, `list/save/archive` for clients, projects and tags,
+`delete_entry`/`restore_entry`, `delete_entries`/`restore_entries` (bulk),
+`list/save/archive` for clients, projects and tags,
 `get_timesheet`, `get_report`, `export_report_csv`, idle review list/resolve,
 `get/update_settings`, `save_backup`, `preview_restore`, `restore_backup`, `quit_app`,
 `get_platform_info`, `get_shortcut_status`.

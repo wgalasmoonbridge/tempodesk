@@ -507,3 +507,127 @@ pub fn resolve_recovery(
         ))),
     }
 }
+
+/// Maximum entries accepted by a single bulk operation.
+pub const MAX_BULK_ENTRIES: usize = 500;
+
+fn normalize_bulk_ids(ids: &[String]) -> Result<Vec<String>> {
+    if ids.is_empty() {
+        return Err(AppError::validation("Select at least one time entry"));
+    }
+    if ids.len() > MAX_BULK_ENTRIES {
+        return Err(AppError::validation(format!(
+            "At most {MAX_BULK_ENTRIES} entries can be changed at once"
+        )));
+    }
+    let mut seen = std::collections::HashSet::new();
+    let mut normalized = Vec::new();
+    for raw in ids {
+        let id = raw.trim();
+        if id.is_empty() || !seen.insert(id.to_string()) {
+            continue;
+        }
+        normalized.push(id.to_string());
+    }
+    if normalized.is_empty() {
+        return Err(AppError::validation("Select at least one time entry"));
+    }
+    Ok(normalized)
+}
+
+/// Soft-delete multiple completed entries in one transaction. Running entries are skipped with an
+/// explicit reason, never partially stopped. The UI can undo the whole batch with `bulk_restore`.
+pub fn bulk_delete(
+    conn: &mut Connection,
+    ids: &[String],
+    now: i64,
+) -> Result<crate::models::BulkDeleteResult> {
+    let ids = normalize_bulk_ids(ids)?;
+    let tx = conn.transaction()?;
+    let mut deleted_ids = Vec::new();
+    let mut skipped = Vec::new();
+
+    for id in ids {
+        let row: Option<(Option<i64>, Option<i64>)> = tx
+            .query_row(
+                "SELECT end_at_utc, deleted_at_utc FROM time_entries WHERE id = ?1",
+                [&id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        match row {
+            None => skipped.push(crate::models::BulkSkip {
+                id,
+                reason: "not_found".into(),
+            }),
+            Some((_, Some(_))) => skipped.push(crate::models::BulkSkip {
+                id,
+                reason: "already_deleted".into(),
+            }),
+            Some((None, None)) => skipped.push(crate::models::BulkSkip {
+                id,
+                reason: "running".into(),
+            }),
+            Some((Some(_), None)) => {
+                tx.execute(
+                    "UPDATE time_entries SET deleted_at_utc = ?1, updated_at_utc = ?1 WHERE id = ?2",
+                    rusqlite::params![now, id],
+                )?;
+                deleted_ids.push(id);
+            }
+        }
+    }
+
+    tx.commit()?;
+    Ok(crate::models::BulkDeleteResult {
+        deleted_count: deleted_ids.len(),
+        deleted_ids,
+        skipped,
+    })
+}
+
+/// Restore multiple soft-deleted entries in one transaction (used by bulk-delete undo).
+pub fn bulk_restore(
+    conn: &mut Connection,
+    ids: &[String],
+    now: i64,
+) -> Result<crate::models::BulkRestoreResult> {
+    let ids = normalize_bulk_ids(ids)?;
+    let tx = conn.transaction()?;
+    let mut restored_ids = Vec::new();
+    let mut skipped = Vec::new();
+
+    for id in ids {
+        let row: Option<Option<i64>> = tx
+            .query_row(
+                "SELECT deleted_at_utc FROM time_entries WHERE id = ?1",
+                [&id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        match row {
+            None => skipped.push(crate::models::BulkSkip {
+                id,
+                reason: "not_found".into(),
+            }),
+            Some(None) => skipped.push(crate::models::BulkSkip {
+                id,
+                reason: "not_deleted".into(),
+            }),
+            Some(Some(_)) => {
+                tx.execute(
+                    "UPDATE time_entries SET deleted_at_utc = NULL, updated_at_utc = ?1 WHERE id = ?2",
+                    rusqlite::params![now, id],
+                )?;
+                restored_ids.push(id);
+            }
+        }
+    }
+
+    tx.commit()?;
+    Ok(crate::models::BulkRestoreResult {
+        restored_count: restored_ids.len(),
+        restored_ids,
+        skipped,
+    })
+}

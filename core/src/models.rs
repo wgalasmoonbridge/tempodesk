@@ -254,6 +254,30 @@ pub struct CreatedEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct BulkSkip {
+    pub id: String,
+    /// "not_found" | "already_deleted" | "running" | "not_deleted" | "invalid"
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkDeleteResult {
+    pub deleted_ids: Vec<String>,
+    pub deleted_count: usize,
+    pub skipped: Vec<BulkSkip>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkRestoreResult {
+    pub restored_ids: Vec<String>,
+    pub restored_count: usize,
+    pub skipped: Vec<BulkSkip>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TimesheetDay {
     pub date: String,
     pub total_seconds: i64,

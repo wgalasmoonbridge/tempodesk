@@ -631,3 +631,87 @@ fn editing_an_entry_keeps_soft_deleted_tag_association() {
         1
     );
 }
+
+#[test]
+fn bulk_delete_and_restore_are_transactional_and_report_skips() {
+    use tempodesk_core::domain::timer;
+    use tempodesk_core::models::StartTimerInput;
+
+    let mut conn = db::open_in_memory().unwrap();
+    let now = ms(2026, 10, 1, 12, 0);
+    let mut ids = Vec::new();
+    for (index, name) in ["A", "B", "C"].iter().enumerate() {
+        let start = now - 3_600_000 + (index as i64) * 600_000;
+        ids.push(add_manual(
+            &mut conn,
+            start,
+            start + 300_000,
+            name,
+            None,
+            vec![],
+            false,
+            now,
+        ));
+    }
+    let running = timer::start(
+        &mut conn,
+        &StartTimerInput {
+            description: Some("running".into()),
+            project_id: None,
+            tag_ids: None,
+            is_billable: Some(false),
+        },
+        now,
+    )
+    .unwrap();
+
+    let mut request = ids.clone();
+    request.push(running.id.clone());
+    request.push("missing".into());
+    request.push(ids[0].clone());
+    let deleted = timer::bulk_delete(&mut conn, &request, now + 1000).unwrap();
+    assert_eq!(deleted.deleted_count, 3);
+    assert_eq!(deleted.deleted_ids.len(), 3);
+    assert!(deleted
+        .skipped
+        .iter()
+        .any(|skip| skip.id == running.id && skip.reason == "running"));
+    assert!(deleted
+        .skipped
+        .iter()
+        .any(|skip| skip.id == "missing" && skip.reason == "not_found"));
+
+    let visible =
+        repo_entries::list_entries(&conn, &EntryFilter::default(), None, None, now + 2000).unwrap();
+    assert_eq!(visible.len(), 1);
+    assert_eq!(visible[0].description, "running");
+    assert!(visible[0].running);
+    let all = repo_entries::list_entries(
+        &conn,
+        &EntryFilter {
+            include_deleted: Some(true),
+            ..Default::default()
+        },
+        None,
+        None,
+        now + 2000,
+    )
+    .unwrap();
+    assert_eq!(all.len(), 4);
+
+    let restored = timer::bulk_restore(&mut conn, &ids, now + 3000).unwrap();
+    assert_eq!(restored.restored_count, 3);
+    let visible =
+        repo_entries::list_entries(&conn, &EntryFilter::default(), None, None, now + 4000).unwrap();
+    assert_eq!(visible.len(), 4);
+    // Restoring again is a no-op with explicit skips.
+    let again = timer::bulk_restore(&mut conn, &ids, now + 5000).unwrap();
+    assert_eq!(again.restored_count, 0);
+    assert_eq!(again.skipped.len(), 3);
+    assert!(again
+        .skipped
+        .iter()
+        .all(|skip| skip.reason == "not_deleted"));
+
+    assert!(timer::bulk_delete(&mut conn, &[], now).is_err());
+}

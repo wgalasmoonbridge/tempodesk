@@ -13,6 +13,9 @@ interface EntryRowProps {
   now: number;
   continuedFromPrevious: boolean;
   continuesNext: boolean;
+  selectionMode: boolean;
+  selected: boolean;
+  onToggleSelected: (entry: TimeEntry) => void;
   onResume: (entry: TimeEntry) => void;
   onEdit: (entry: TimeEntry) => void;
   onDelete: (entry: TimeEntry) => void;
@@ -26,12 +29,26 @@ export function EntryRow({
   now,
   continuedFromPrevious,
   continuesNext,
+  selectionMode,
+  selected,
+  onToggleSelected,
   onResume,
   onEdit,
   onDelete,
 }: EntryRowProps) {
   return (
-    <div className={`entry-row${entry.running ? " running" : ""}`}>
+    <div className={`entry-row${entry.running ? " running" : ""}${selectionMode ? " selecting" : ""}`}>
+      {selectionMode ? (
+        <label className="entry-select" title={entry.running ? "Stop the timer before selecting it for deletion" : "Select entry"}>
+          <input
+            type="checkbox"
+            checked={selected}
+            disabled={entry.running}
+            aria-label={`Select ${entryTitle(entry)}`}
+            onChange={() => onToggleSelected(entry)}
+          />
+        </label>
+      ) : null}
       <div className="entry-main">
         <div className="entry-title" title={entryTitle(entry)}>
           {entryTitle(entry)}

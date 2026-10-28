@@ -93,6 +93,8 @@ pub fn run() {
             commands::update_entry,
             commands::delete_entry,
             commands::restore_entry,
+            commands::delete_entries,
+            commands::restore_entries,
             commands::list_clients,
             commands::save_client,
             commands::archive_client,

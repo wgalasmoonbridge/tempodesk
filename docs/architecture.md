@@ -97,10 +97,13 @@ data.
 3. `stop_timer` is idempotent in effect: a second call returns `no_active_timer` and cannot create a
    second entry.
 4. `resume_entry` copies metadata/tags into a new running row; the original is untouched.
-5. A background heartbeat (5s loop, persisted every 15s) updates `last_heartbeat_utc`. A heartbeat
+5. Bulk history operations (`delete_entries` / `restore_entries`) run in one transaction, dedupe IDs,
+   soft-delete only completed entries, skip running/unknown rows with explicit reasons, and share
+   one deletion timestamp for the batch so Undo can restore the exact set.
+6. A background heartbeat (5s loop, persisted every 15s) updates `last_heartbeat_utc`. A heartbeat
    gap > 90s (sleep/hibernate/clock move, either direction) queues a `sleep` review if a timer is
    running.
-6. On launch, `clean_exit != 1` or an active entry left from a graceful “keep running & quit”
+7. On launch, `clean_exit != 1` or an active entry left from a graceful “keep running & quit”
    produces `pending_recovery` with start, last-seen, estimated seconds and reason. The UI cannot
    dismiss it without choosing **Continue**, **Stop at last seen**, or **Stop now**. No path deletes
    the session.

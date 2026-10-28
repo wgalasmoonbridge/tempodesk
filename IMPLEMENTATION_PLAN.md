@@ -62,7 +62,7 @@ render, settings persisted, `npm run check` passes.
 | M1-6 | Local-midnight/DST-safe day math | L | [x] |
 
 **Exit evidence:** AC-01, AC-04, AC-05, AC-06, AC-08 pass (Rust + real UI). Kill/relaunch recovery
-verified. Overnight 23:30→00:30 splits correctly. 41 Rust tests total (34 unit + 7 integration).
+verified. Overnight 23:30→00:30 splits correctly. 42 Rust tests total (34 unit + 8 integration).
 
 ### M2 — Projects, clients, tags & history editing — **COMPLETE**
 | # | Task | Complexity | Status |
@@ -70,7 +70,7 @@ verified. Overnight 23:30→00:30 splits correctly. 41 Rust tests total (34 unit
 | M2-1 | Client/project/tag CRUD, archive/unarchive, unique active names, color/default billable | L | [x] |
 | M2-2 | Tag attach/detach, rename reflected in history, soft delete preserves history/reports | M | [x] |
 | M2-3 | History filters: date range, project, client, tag, billable, free text, reset, pagination | M | [x] |
-| M2-4 | Edit/delete UI with confirmation + undo; inline validation | M | [x] |
+| M2-4 | Edit/delete UI with confirmation + undo; inline validation; bulk select/delete/undo | M | [x] |
 | M2-5 | Projects/Clients/Tags screens with empty states | M | [x] |
 
 **Exit evidence:** AC-09/AC-16 pass. Tag rename/archive/delete reflected while history remains;

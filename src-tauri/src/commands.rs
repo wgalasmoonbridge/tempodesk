@@ -3,10 +3,11 @@ use tauri::{AppHandle, Emitter, State};
 use crate::domain::{idle, portability, reports, timer, timeutil};
 use crate::error::Result;
 use crate::models::{
-    AppSettings, AppStatus, BackupPreview, BackupResult, Client, ClientInput, CreatedEntry,
-    EntryFilter, EntryUpdateInput, ExportResult, IdleReview, ManualEntryInput, PlatformInfo,
-    Project, ProjectInput, RecoveryInfo, ReportFilter, ReportResult, RestoreResult, SettingsPatch,
-    SettingsUpdateResult, ShortcutStatus, StartTimerInput, Tag, TagInput, TimeEntry, Timesheet,
+    AppSettings, AppStatus, BackupPreview, BackupResult, BulkDeleteResult, BulkRestoreResult,
+    Client, ClientInput, CreatedEntry, EntryFilter, EntryUpdateInput, ExportResult, IdleReview,
+    ManualEntryInput, PlatformInfo, Project, ProjectInput, RecoveryInfo, ReportFilter,
+    ReportResult, RestoreResult, SettingsPatch, SettingsUpdateResult, ShortcutStatus,
+    StartTimerInput, Tag, TagInput, TimeEntry, Timesheet,
 };
 use crate::platform;
 use crate::state::AppState;
@@ -231,6 +232,38 @@ pub fn restore_entry(app: AppHandle, state: State<'_, AppState>, id: String) -> 
     };
     emit_changed(&app, "entries-changed");
     Ok(entry)
+}
+
+/// Soft-delete several completed entries at once. Running entries are skipped and reported.
+#[tauri::command]
+pub fn delete_entries(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<BulkDeleteResult> {
+    let now = timeutil::now_ms();
+    let result = {
+        let mut db = state.db()?;
+        timer::bulk_delete(&mut db, &ids, now)?
+    };
+    emit_changed(&app, "entries-changed");
+    Ok(result)
+}
+
+/// Restore several soft-deleted entries at once (bulk delete undo).
+#[tauri::command]
+pub fn restore_entries(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<BulkRestoreResult> {
+    let now = timeutil::now_ms();
+    let result = {
+        let mut db = state.db()?;
+        timer::bulk_restore(&mut db, &ids, now)?
+    };
+    emit_changed(&app, "entries-changed");
+    Ok(result)
 }
 
 /* ------------------------------ organization ----------------------------- */

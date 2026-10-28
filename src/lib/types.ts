@@ -161,6 +161,30 @@ export interface CreatedEntry {
   overlaps: OverlapInfo[];
 }
 
+export type BulkSkipReason =
+  | "not_found"
+  | "already_deleted"
+  | "running"
+  | "not_deleted"
+  | "invalid";
+
+export interface BulkSkip {
+  id: string;
+  reason: BulkSkipReason;
+}
+
+export interface BulkDeleteResult {
+  deletedIds: string[];
+  deletedCount: number;
+  skipped: BulkSkip[];
+}
+
+export interface BulkRestoreResult {
+  restoredIds: string[];
+  restoredCount: number;
+  skipped: BulkSkip[];
+}
+
 export interface TimesheetDay {
   date: string;
   totalSeconds: number;

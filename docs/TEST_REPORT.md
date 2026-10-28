@@ -16,7 +16,7 @@ rusqlite 0.40.2 (bundled SQLite).
 | Area | Result |
 |---|---|
 | Rust unit tests (`tempodesk-core`) | **34 passed** |
-| Rust integration tests (filters, CSV, 10k, timer, tag history) | **7 passed** |
+| Rust integration tests (filters, CSV, 10k, timer, tag history, bulk) | **8 passed** |
 | Frontend Vitest suites | **22 passed** (2 files) |
 | `tsc --noEmit` | Pass |
 | ESLint | Pass (0 warnings) |
@@ -71,7 +71,7 @@ npm run smoke -- --release
   survives backup/restore, CSV export, path extension validation.
 - **settings**: defaults, persistence, validation, runtime state.
 
-### Integration tests (7, `core/tests/filters_and_perf.rs`)
+### Integration tests (8, `core/tests/filters_and_perf.rs`)
 
 1. `entry_filters_share_one_computation` — project/client/tag/billable/search/date/sort/soft-delete
    filters, LIKE escaping (`%`), includeDeleted.
@@ -87,6 +87,9 @@ npm run smoke -- --release
    the original, running-entry end-time edit rejected.
 7. `editing_an_entry_keeps_soft_deleted_tag_association` — historical tag names survive tag deletion
    and remain editable; unknown tag IDs are rejected.
+8. `bulk_delete_and_restore_are_transactional_and_report_skips` — three entries deleted in one
+   transaction, running/unknown IDs skipped with reasons, batch restore recovers all three,
+   re-restore reports `not_deleted`, empty batch rejected.
 
 ## 3. Frontend tests (21)
 
@@ -136,6 +139,7 @@ recovery/quit.
 - `recovery-modal.png`, `quit-dialog.png`
 - `responsive-860.png`
 - `scroll-fixed.png` — vertical scrolling in the reports view after the fix
+- `bulk-select.png`, `bulk-confirm.png` — bulk selection toolbar and batch delete confirmation
 - `installed-app.png`
 
 ## 5. Acceptance criteria matrix

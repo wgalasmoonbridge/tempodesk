@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CalendarClock, Inbox, Search, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  Inbox,
+  ListChecks,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "../../components/Button";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Dialog } from "../../components/Dialog";
@@ -79,6 +87,10 @@ export function TrackerPage() {
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TimeEntry | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [resumeTarget, setResumeTarget] = useState<TimeEntry | null>(null);
   const [resumeBusy, setResumeBusy] = useState(false);
   const [pendingSwitch, setPendingSwitch] = useState<StartTimerInput | null>(null);
@@ -192,6 +204,31 @@ export function TrackerPage() {
   }, [entries, now, timezone, preset, from, to]);
 
   const rangeTotal = groups.reduce((sum, group) => sum + group.total, 0);
+  const selectedEntries = useMemo(
+    () => entries.filter((entry) => selectedIds.has(entry.id)),
+    [entries, selectedIds],
+  );
+  const selectableIds = useMemo(
+    () => entries.filter((entry) => !entry.running).map((entry) => entry.id),
+    [entries],
+  );
+  const allVisibleSelected =
+    selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
+  const selectedSeconds = selectedEntries.reduce(
+    (sum, entry) => sum + (entry.durationSeconds ?? 0),
+    0,
+  );
+
+  // Drop selections that no longer exist after a delete/restore/filter refresh.
+  useEffect(() => {
+    setSelectedIds((previous) => {
+      if (previous.size === 0) return previous;
+      const available = new Set(entries.map((entry) => entry.id));
+      const next = new Set([...previous].filter((id) => available.has(id)));
+      return next.size === previous.size ? previous : next;
+    });
+  }, [entries]);
+
   const liveTodaySeconds = useMemo(() => {
     const base = status?.todaySeconds ?? 0;
     if (!status?.activeEntry) return base;
@@ -299,6 +336,97 @@ export function TrackerPage() {
     }
   };
 
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelected = (entry: TimeEntry) => {
+    if (entry.running) return;
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(entry.id)) next.delete(entry.id);
+      else next.add(entry.id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allVisibleSelected ? new Set() : new Set(selectableIds));
+  };
+
+  const confirmBulkDelete = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      const result = await api.deleteEntries(ids);
+      setBulkDeleteOpen(false);
+      exitSelection();
+      if (result.deletedCount === 0) {
+        pushToast({
+          title: "No entries were deleted",
+          message:
+            result.skipped.length > 0
+              ? "The selected entries were already deleted, running, or no longer available."
+              : "Nothing changed.",
+          tone: "warning",
+        });
+      } else {
+        const skippedMessage =
+          result.skipped.length > 0
+            ? ` ${result.skipped.length} ${
+                result.skipped.length === 1 ? "entry was" : "entries were"
+              } skipped (running or already deleted).`
+            : "";
+        pushToast({
+          title: `${result.deletedCount} ${
+            result.deletedCount === 1 ? "entry" : "entries"
+          } deleted`,
+          message: `Removed from totals and reports.${skippedMessage} You can undo this batch.`,
+          tone: result.skipped.length > 0 ? "warning" : "success",
+          duration: 10000,
+          action: {
+            label: "Undo",
+            onClick: () => {
+              void api
+                .restoreEntries(result.deletedIds)
+                .then((restored) => {
+                  pushToast({
+                    title: `${restored.restoredCount} ${
+                      restored.restoredCount === 1 ? "entry" : "entries"
+                    } restored`,
+                    message:
+                      restored.skipped.length > 0
+                        ? `${restored.skipped.length} could not be restored.`
+                        : "Totals and reports include them again.",
+                    tone: restored.skipped.length > 0 ? "warning" : "success",
+                  });
+                  return refreshAll();
+                })
+                .catch((err) =>
+                  pushToast({
+                    title: "Could not restore the deleted entries",
+                    message: normalizeError(err).message,
+                    tone: "error",
+                  }),
+                );
+            },
+          },
+        });
+      }
+      await refreshAll();
+    } catch (err) {
+      pushToast({
+        title: "Bulk delete failed",
+        message: normalizeError(err).message,
+        tone: "error",
+      });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleteBusy(true);
@@ -379,12 +507,31 @@ export function TrackerPage() {
             History
           </h2>
           <span className="badge">{entries.length} sessions</span>
-          <span style={{ marginLeft: "auto", color: "var(--muted)", fontSize: 12 }}>
-            Range total{" "}
-            <strong style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
-              {formatDuration(rangeTotal, "hm")}
-            </strong>
-          </span>
+          <div
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<ListChecks size={14} aria-hidden="true" />}
+              onClick={() => (selectionMode ? exitSelection() : setSelectionMode(true))}
+              disabled={entries.length === 0}
+            >
+              {selectionMode ? "Exit selection" : "Select"}
+            </Button>
+            <span style={{ color: "var(--muted)", fontSize: 12 }}>
+              Range total{" "}
+              <strong style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
+                {formatDuration(rangeTotal, "hm")}
+              </strong>
+            </span>
+          </div>
         </div>
 
         <div className="list-toolbar" style={{ marginBottom: 10 }} role="search" aria-label="Filter time entries">
@@ -520,6 +667,31 @@ export function TrackerPage() {
           {loading ? <span className="entry-time">Loading…</span> : null}
         </div>
 
+        {selectionMode ? (
+          <div className="bulk-bar" role="region" aria-label="Bulk entry actions">
+            <span>
+              <strong>{selectedIds.size}</strong>{" "}
+              {selectedIds.size === 1 ? "entry" : "entries"} selected
+            </span>
+            <Button size="sm" variant="ghost" onClick={toggleSelectAll}>
+              {allVisibleSelected ? "Clear selection" : "Select all shown"}
+            </Button>
+            <span className="spacer" />
+            <Button
+              size="sm"
+              variant="danger"
+              icon={<Trash2 size={13} aria-hidden="true" />}
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={selectedIds.size === 0}
+            >
+              Delete selected
+            </Button>
+            <Button size="sm" variant="ghost" onClick={exitSelection}>
+              Cancel
+            </Button>
+          </div>
+        ) : null}
+
         {error ? (
           <div className="banner warning" role="alert">
             <div className="banner-icon">
@@ -576,6 +748,9 @@ export function TrackerPage() {
                   now={now}
                   continuedFromPrevious={segment.continuedFromPrevious}
                   continuesNext={segment.continuesNext}
+                  selectionMode={selectionMode}
+                  selected={selectedIds.has(segment.entry.id)}
+                  onToggleSelected={toggleSelected}
                   onResume={(entry) => {
                     if (status?.activeEntry) setResumeTarget(entry);
                     else void doResume(entry, false);
@@ -594,6 +769,33 @@ export function TrackerPage() {
         entry={editEntry}
         onClose={() => setEditEntry(null)}
       />
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        title={`Delete ${selectedIds.size} selected ${
+          selectedIds.size === 1 ? "entry" : "entries"
+        }?`}
+        description="The entries are removed from totals, timesheets, and reports together. Running entries are never included. You can undo the whole batch immediately after."
+        confirmLabel={
+          bulkBusy
+            ? "Deleting…"
+            : `Delete ${selectedIds.size} ${
+                selectedIds.size === 1 ? "entry" : "entries"
+              }`
+        }
+        tone="danger"
+        busy={bulkBusy}
+        onCancel={() => setBulkDeleteOpen(false)}
+        onConfirm={() => void confirmBulkDelete()}
+      >
+        <p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)" }}>
+          {selectedEntries
+            .map((entry) => entry.description.trim() || "Untitled session")
+            .join(" · ")}
+          {" — "}
+          {formatDuration(selectedSeconds, "compact")} total recorded time.
+        </p>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
