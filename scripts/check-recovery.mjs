@@ -1,0 +1,13 @@
+import { connect, assert } from "./cdp-lib.mjs";
+const cdp = await connect();
+const body = await cdp.text();
+assert(body.includes("Recover a timer from your last session"), "recovery modal visible");
+assert(body.includes("Crash recovery test"), "recovered entry shown");
+await cdp.screenshot("docs/screenshots/recovery-modal.png");
+await cdp.click("Stop at last seen");
+await cdp.waitFor("document.body.innerText.includes('Timer stopped at last known time')", { label: "recovery toast" });
+await cdp.waitFor("!document.body.innerText.includes('Recover a timer from your last session')", { label: "modal closed" });
+const after = await cdp.text();
+assert(after.includes("Crash recovery test"), "recovered entry saved in history");
+console.log("recovery flow passed");
+cdp.close();

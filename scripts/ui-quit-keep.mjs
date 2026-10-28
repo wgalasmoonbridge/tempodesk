@@ -1,0 +1,13 @@
+import { connect } from "./cdp-lib.mjs";
+const cdp = await connect();
+const invoke = (c, a) => cdp.evaluate(`window.__TAURI_INTERNALS__.invoke(${JSON.stringify(c)}, ${JSON.stringify(a)})`);
+const status = await invoke("get_app_status", { timezone: "America/Chicago" });
+if (status.activeEntry) await invoke("stop_timer");
+await cdp.type("#timer-description", "Quit keep test");
+await cdp.click("Start");
+await cdp.waitFor("document.body.innerText.includes('Tracking')");
+console.log("running; waiting 20s for heartbeat");
+await new Promise((r) => setTimeout(r, 20000));
+await invoke("quit_app", { stopTimer: false });
+console.log("quit requested keeping timer");
+cdp.close();

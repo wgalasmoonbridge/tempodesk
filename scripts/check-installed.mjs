@@ -1,0 +1,11 @@
+import { connect, assert } from "./cdp-lib.mjs";
+const cdp = await connect();
+const info = await cdp.evaluate("window.__TAURI_INTERNALS__.invoke('get_platform_info')");
+console.log(info);
+assert(info.dbPath.toLowerCase().includes("com.tempodesk.desktop"), "DB in OS app-data directory");
+assert((await cdp.text()).includes("Time Tracker"), "installed app UI loaded");
+await cdp.screenshot("docs/screenshots/installed-app.png");
+await cdp.evaluate("setTimeout(() => window.__TAURI_INTERNALS__.invoke('quit_app', { stopTimer: false }), 50); true");
+console.log("PASS installed package launches and uses app-data DB");
+await new Promise((resolve) => setTimeout(resolve, 500));
+cdp.close();

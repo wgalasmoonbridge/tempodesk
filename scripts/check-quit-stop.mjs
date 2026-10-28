@@ -1,0 +1,12 @@
+import { connect, assert } from "./cdp-lib.mjs";
+const cdp = await connect();
+const invoke = (c, a) => cdp.evaluate(`window.__TAURI_INTERNALS__.invoke(${JSON.stringify(c)}, ${JSON.stringify(a)})`);
+const status = await invoke("get_app_status", { timezone: "America/Chicago" });
+assert(!status.pendingRecovery, "no recovery prompt after stop-and-quit");
+assert(!status.activeEntry, "no active timer after stop-and-quit");
+const entries = await invoke("list_entries", { filter: { timezone: "America/Chicago", limit: 20 } });
+const saved = entries.find((entry) => entry.description === "Quit stop test");
+assert(saved && saved.durationSeconds >= 1 && saved.endAtUtc, "stopped entry saved on quit");
+assert((await cdp.text()).includes("Quit stop test"), "entry visible in history after restart");
+console.log("PASS stop timer & quit persists the entry without recovery prompt");
+cdp.close();

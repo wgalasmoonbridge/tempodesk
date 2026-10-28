@@ -1,0 +1,21 @@
+[package]
+name = "tempodesk-core"
+version = "0.1.0"
+description = "TempoDesk domain, persistence, and reporting logic (no UI/Tauri dependencies)"
+edition = "2021"
+rust-version = "1.85"
+
+[lib]
+name = "tempodesk_core"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+uuid = { version = "1", features = ["v4"] }
+thiserror = "2"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+
+[dev-dependencies]
+rusqlite = { version = "0.40.2", features = ["bundled"] }

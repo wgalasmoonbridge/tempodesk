@@ -1,0 +1,124 @@
+use std::collections::HashSet;
+use std::path::Path;
+use std::time::Duration;
+
+use rusqlite::Connection;
+
+use crate::error::{AppError, Result};
+use crate::timeutil;
+
+const MIGRATIONS: &[(i64, &str)] = &[(1, include_str!("../../migrations/0001_init.sql"))];
+
+/// Open the app database, creating directories/privacy-friendly file if needed.
+pub fn open_at(path: &Path) -> Result<Connection> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let conn = Connection::open(path)?;
+    configure(&conn)?;
+    migrate(&conn)?;
+    Ok(conn)
+}
+
+/// In-memory database with all migrations applied (used by tests and tooling).
+pub fn open_in_memory() -> Result<Connection> {
+    let conn = Connection::open_in_memory()?;
+    configure(&conn)?;
+    migrate(&conn)?;
+    Ok(conn)
+}
+
+fn configure(conn: &Connection) -> Result<()> {
+    conn.pragma_update(None, "foreign_keys", "ON")?;
+    conn.pragma_update(None, "journal_mode", "WAL")?;
+    conn.pragma_update(None, "synchronous", "NORMAL")?;
+    conn.pragma_update(None, "temp_store", "MEMORY")?;
+    conn.busy_timeout(Duration::from_secs(5))?;
+    Ok(())
+}
+
+fn migrate(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS schema_migrations (
+            version INTEGER PRIMARY KEY,
+            applied_at_utc INTEGER NOT NULL
+         );",
+    )?;
+
+    let mut applied = HashSet::new();
+    {
+        let mut stmt = conn.prepare("SELECT version FROM schema_migrations")?;
+        let rows = stmt.query_map([], |row| row.get::<_, i64>(0))?;
+        for row in rows {
+            applied.insert(row?);
+        }
+    }
+
+    for (version, sql) in MIGRATIONS {
+        if applied.contains(version) {
+            continue;
+        }
+        let tx = conn.unchecked_transaction()?;
+        tx.execute_batch(sql)?;
+        tx.execute(
+            "INSERT INTO schema_migrations (version, applied_at_utc) VALUES (?1, ?2)",
+            rusqlite::params![version, timeutil::now_ms()],
+        )?;
+        tx.pragma_update(None, "user_version", version)?;
+        tx.commit()?;
+    }
+    Ok(())
+}
+
+pub fn integrity_check(conn: &Connection) -> Result<String> {
+    let result: String = conn.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
+    if result != "ok" {
+        return Err(AppError::Internal(format!(
+            "Database integrity check failed: {result}"
+        )));
+    }
+    Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn migrates_and_enforces_foreign_keys() {
+        let conn = open_in_memory().unwrap();
+        assert_eq!(integrity_check(&conn).unwrap(), "ok");
+        let version: i64 = conn
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 1);
+        let fk: i64 = conn
+            .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(fk, 1);
+        // Unknown project must be rejected by the foreign key.
+        let err = conn.execute(
+            "INSERT INTO time_entries (id, description, project_id, start_at_utc, end_at_utc, duration_seconds, is_billable, source, created_at_utc, updated_at_utc)
+             VALUES ('e1', '', 'missing', 0, 1000, 1, 0, 'manual', 0, 0)",
+            [],
+        );
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn only_one_active_entry_allowed_by_db() {
+        let conn = open_in_memory().unwrap();
+        let insert = |id: &str| {
+            conn.execute(
+                "INSERT INTO time_entries (id, description, start_at_utc, is_billable, source, created_at_utc, updated_at_utc)
+                 VALUES (?1, '', 1000, 0, 'timer', 0, 0)",
+                rusqlite::params![id],
+            )
+        };
+        insert("a").unwrap();
+        assert!(
+            insert("b").is_err(),
+            "second active entry must violate the unique index"
+        );
+    }
+}
