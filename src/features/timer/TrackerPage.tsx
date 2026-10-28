@@ -75,6 +75,7 @@ export function TrackerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TimeEntry | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -103,6 +104,14 @@ export function TrackerPage() {
     },
     [settings.startOfWeek, timezone],
   );
+
+  // Keep relative date ranges correct if the app stays open across local midnight.
+  useEffect(() => {
+    if (preset === "last7" || preset === "today" || preset === "week") {
+      applyPreset(preset);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [today, preset, timezone, settings.startOfWeek]);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,6 +232,8 @@ export function TrackerPage() {
   };
 
   const stop = async () => {
+    if (stopping) return;
+    setStopping(true);
     try {
       const entry = await api.stopTimer();
       pushToast({
@@ -238,6 +249,8 @@ export function TrackerPage() {
         message: normalizeError(err).message,
         tone: "error",
       });
+    } finally {
+      setStopping(false);
     }
   };
 
@@ -265,7 +278,8 @@ export function TrackerPage() {
   };
 
   const confirmSwitch = async () => {
-    if (!pendingSwitch) return;
+    if (!pendingSwitch || starting) return;
+    setStarting(true);
     try {
       await api.switchTimer(pendingSwitch);
       pushToast({
@@ -280,6 +294,7 @@ export function TrackerPage() {
         tone: "error",
       });
     } finally {
+      setStarting(false);
       setPendingSwitch(null);
     }
   };
@@ -342,6 +357,7 @@ export function TrackerPage() {
         projects={projects}
         tags={tags}
         starting={starting}
+        stopping={stopping}
         onStart={(input) => void start(input)}
         onStop={() => void stop()}
         onEdit={(entry) => setEditEntry(entry)}
@@ -611,6 +627,7 @@ export function TrackerPage() {
         title="A timer is already running"
         description="TempoDesk keeps exactly one running timer. Continue to stop the current session and start this one atomically."
         confirmLabel="Stop current & start"
+        busy={starting}
         onCancel={() => setPendingSwitch(null)}
         onConfirm={() => void confirmSwitch()}
       />

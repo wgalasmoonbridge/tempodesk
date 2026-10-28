@@ -62,7 +62,7 @@ render, settings persisted, `npm run check` passes.
 | M1-6 | Local-midnight/DST-safe day math | L | [x] |
 
 **Exit evidence:** AC-01, AC-04, AC-05, AC-06, AC-08 pass (Rust + real UI). Kill/relaunch recovery
-verified. Overnight 23:30→00:30 splits correctly. 39 Rust tests total (33 unit + 6 integration).
+verified. Overnight 23:30→00:30 splits correctly. 41 Rust tests total (34 unit + 7 integration).
 
 ### M2 — Projects, clients, tags & history editing — **COMPLETE**
 | # | Task | Complexity | Status |

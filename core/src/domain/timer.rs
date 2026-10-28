@@ -1,4 +1,4 @@
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 use uuid::Uuid;
 
 use crate::domain::timeutil::{
@@ -7,7 +7,7 @@ use crate::domain::timeutil::{
 use crate::domain::validate::{normalize_description, validate_manual_range, validate_timer_start};
 use crate::error::{AppError, Result};
 use crate::models::{CreatedEntry, EntryUpdateInput, ManualEntryInput, StartTimerInput, TimeEntry};
-use crate::storage::{repo_entries, repo_projects, repo_tags};
+use crate::storage::{repo_entries, repo_projects};
 
 const MAX_TIMER_EDIT_SECONDS: i64 = 7 * 24 * 60 * 60;
 
@@ -51,8 +51,16 @@ fn resolve_meta(
             if tag_id.trim().is_empty() {
                 continue;
             }
-            // Ensures the tag exists and has not been soft-deleted.
-            repo_tags::get(conn, tag_id)?;
+            // Tags are validated including soft-deleted rows so historical associations can be
+            // preserved when an entry is edited after its tag was removed from selectors.
+            let exists: Option<String> = conn
+                .query_row("SELECT id FROM tags WHERE id = ?1", [tag_id], |row| {
+                    row.get(0)
+                })
+                .optional()?;
+            if exists.is_none() {
+                return Err(AppError::not_found("Tag not found"));
+            }
             if !unique_tags.iter().any(|t| t == tag_id) {
                 unique_tags.push(tag_id.clone());
             }

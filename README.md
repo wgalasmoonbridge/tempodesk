@@ -14,7 +14,7 @@ but **not tested** on this host; see [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SU
 P1 features (calendar timeline, Pomodoro, foreground-app auto-tracking, PDF/XLSX, sync) are out of
 scope and were not started.
 
-- 39 Rust tests (33 unit + 6 integration), 22 TypeScript/Vitest tests.
+- 41 Rust tests (34 unit + 7 integration), 22 TypeScript/Vitest tests.
 - Real UI flows verified through WebView2 DevTools automation (create project, timer, manual
   entries, edit/delete/undo, overnight validation, tags/clients/projects, timesheet cell editor,
   reports filters, backup/restore, CSV totals, idle review, crash recovery, quit policies,

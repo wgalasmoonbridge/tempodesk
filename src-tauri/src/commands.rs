@@ -493,6 +493,12 @@ pub fn restore_backup(
     };
     state.set_settings(settings.clone());
     state.reload_recovery()?;
+    for warning in platform::shortcuts::apply(&app, &settings) {
+        log::warn!("{warning}");
+    }
+    for warning in platform::sync_autostart(&app, settings.launch_at_login) {
+        log::warn!("{warning}");
+    }
     let _ = app.emit("data-changed", ());
     let _ = app.emit("settings-changed", &settings);
     platform::tray::refresh(&app);

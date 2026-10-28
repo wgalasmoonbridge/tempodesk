@@ -22,6 +22,7 @@ interface RunningCardProps {
   projects: Project[];
   tags: Tag[];
   starting: boolean;
+  stopping: boolean;
   onStart: (input: StartTimerInput) => void;
   onStop: () => void;
   onEdit: (entry: TimeEntry) => void;
@@ -37,6 +38,7 @@ export function RunningCard({
   projects,
   tags,
   starting,
+  stopping,
   onStart,
   onStop,
   onEdit,
@@ -102,9 +104,10 @@ export function RunningCard({
               variant="danger"
               icon={<Square size={13} aria-hidden="true" fill="currentColor" />}
               onClick={onStop}
+              disabled={stopping}
               className="btn-stop"
             >
-              Stop
+              {stopping ? "Stopping…" : "Stop"}
             </Button>
             <Button
               variant="secondary"

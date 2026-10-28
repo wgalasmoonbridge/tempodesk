@@ -15,8 +15,8 @@ rusqlite 0.40.2 (bundled SQLite).
 
 | Area | Result |
 |---|---|
-| Rust unit tests (`tempodesk-core`) | **33 passed** |
-| Rust integration tests (filters, CSV, 10k, timer flow) | **6 passed** |
+| Rust unit tests (`tempodesk-core`) | **34 passed** |
+| Rust integration tests (filters, CSV, 10k, timer, tag history) | **7 passed** |
 | Frontend Vitest suites | **22 passed** (2 files) |
 | `tsc --noEmit` | Pass |
 | ESLint | Pass (0 warnings) |
@@ -71,7 +71,7 @@ npm run smoke -- --release
   survives backup/restore, CSV export, path extension validation.
 - **settings**: defaults, persistence, validation, runtime state.
 
-### Integration tests (6, `core/tests/filters_and_perf.rs`)
+### Integration tests (7, `core/tests/filters_and_perf.rs`)
 
 1. `entry_filters_share_one_computation` — project/client/tag/billable/search/date/sort/soft-delete
    filters, LIKE escaping (`%`), includeDeleted.
@@ -85,6 +85,8 @@ npm run smoke -- --release
 6. `timer_flow_enforces_one_active_entry_and_resume_copy_semantics` — duplicate start rejected,
    atomic switch, double stop cannot create a second entry, resume copies metadata without changing
    the original, running-entry end-time edit rejected.
+7. `editing_an_entry_keeps_soft_deleted_tag_association` — historical tag names survive tag deletion
+   and remain editable; unknown tag IDs are rejected.
 
 ## 3. Frontend tests (21)
 

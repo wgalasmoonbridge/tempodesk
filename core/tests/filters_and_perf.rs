@@ -556,3 +556,78 @@ fn timer_flow_enforces_one_active_entry_and_resume_copy_semantics() {
     assert!(invalid.is_err());
     timer::stop(&mut conn, start + 520_000).unwrap();
 }
+
+#[test]
+fn editing_an_entry_keeps_soft_deleted_tag_association() {
+    use tempodesk_core::domain::timer;
+    use tempodesk_core::models::{EntryUpdateInput, ManualEntryInput};
+    use tempodesk_core::storage::repo_entries;
+
+    let mut conn = db::open_in_memory().unwrap();
+    let now = ms(2026, 8, 1, 12, 0);
+    let tag = repo_tags::save(
+        &conn,
+        &TagInput {
+            id: None,
+            name: "historical".into(),
+            color: None,
+        },
+        now,
+    )
+    .unwrap();
+    let created = timer::create_manual(
+        &mut conn,
+        &ManualEntryInput {
+            description: Some("tagged".into()),
+            project_id: None,
+            tag_ids: Some(vec![tag.id.clone()]),
+            is_billable: Some(false),
+            start_at_utc: now - 3_600_000,
+            end_at_utc: now,
+        },
+        now,
+    )
+    .unwrap();
+    repo_tags::soft_delete(&conn, &tag.id, now + 1000).unwrap();
+
+    let updated = timer::update(
+        &mut conn,
+        &created.entry.id,
+        &EntryUpdateInput {
+            description: "tagged and edited".into(),
+            project_id: None,
+            tag_ids: vec![tag.id.clone()],
+            is_billable: false,
+            start_at_utc: now - 3_600_000,
+            end_at_utc: Some(now),
+        },
+        now + 2000,
+    )
+    .unwrap();
+    assert_eq!(updated.entry.tags.len(), 1);
+    assert_eq!(updated.entry.tags[0].id, tag.id);
+
+    // Unknown tag IDs are still rejected.
+    let invalid = timer::update(
+        &mut conn,
+        &created.entry.id,
+        &EntryUpdateInput {
+            description: "bad".into(),
+            project_id: None,
+            tag_ids: vec!["missing-tag".into()],
+            is_billable: false,
+            start_at_utc: now - 3_600_000,
+            end_at_utc: Some(now),
+        },
+        now + 3000,
+    );
+    assert!(invalid.is_err());
+    assert_eq!(
+        repo_entries::get_entry(&conn, &created.entry.id)
+            .unwrap()
+            .unwrap()
+            .tags
+            .len(),
+        1
+    );
+}
