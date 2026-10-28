@@ -59,7 +59,8 @@ npm run build              # TypeScript typecheck + Vite production bundle
 npm run test               # Vitest (time math, validation, formatting)
 npm run test:rust          # Rust core tests
 npm run check              # typecheck + lint + Vitest + core tests + clippy + cargo check
-npm run smoke              # launch debug build, verify SQLite DB is created
+npm run smoke              # launch debug build against an isolated test DB
+npm run build:test         # debug build using the TempoDesk Dev identifier (for UI tests)
 npm run tauri:build        # production build + installer for the host
 ```
 
@@ -71,6 +72,30 @@ src-tauri/target/release/bundle/nsis/TempoDesk_0.1.0_x64-setup.exe
 
 It installs per-user (no admin prompt) to `%LOCALAPPDATA%\TempoDesk`. The installer is unsigned;
 Windows SmartScreen may warn.
+
+## Data isolation: development can never touch your real data
+
+TempoDesk deliberately separates production, development, and test profiles:
+
+| Profile | App identifier | Data directory (Windows) | How it is started |
+|---|---|---|---|
+| **Production** | `com.tempodesk.desktop` | `%APPDATA%\com.tempodesk.desktop` | Installed app / release build |
+| **Development** | `com.tempodesk.desktop.dev` | `%APPDATA%\com.tempodesk.desktop.dev` | `npm run tauri:dev` |
+| **Test / automation** | `com.tempodesk.desktop.dev` | `.test-data\run-*` via `TEMPO_DATA_DIR` | `node scripts/launch-test-app.mjs` |
+
+- Release builds **ignore** `TEMPO_DATA_DIR` and always use the production directory.
+- Debug builds use a separate `...dev` data directory, the Dev identifier (separate single-instance
+  mutex and WebView2 profile), and show **TempoDesk Dev** in the titlebar.
+- UI automation includes a hard guard: `scripts/cdp-lib.mjs` refuses to connect to a `production`
+  profile unless `ALLOW_PRODUCTION_TESTS=1` is explicitly set. It also fails closed if it cannot
+  determine the profile.
+- `scripts/launch-test-app.mjs` starts a fresh `.test-data/run-<timestamp>` profile, verifies it is
+  the `test` profile, and records the PID. `scripts/stop-test-app.mjs` stops only that PID.
+- The installed app can stay open while you develop or run tests; they do not share a database,
+  backups, single-instance lock, or WebView2 data.
+- `npm run smoke` uses a fresh `.test-data` directory. `npm run smoke -- --release` is blocked
+  unless `ALLOW_PRODUCTION_TESTS=1` is set, because even launching production writes
+  heartbeat/clean-exit state.
 
 ## Five-minute demonstration (M1 checkpoint)
 
@@ -170,9 +195,11 @@ Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-chan
 
 ## Data & privacy
 
-- Database: `%APPDATA%\com.tempodesk.desktop\tempodesk.db` (Windows),
+- Production database: `%APPDATA%\com.tempodesk.desktop\tempodesk.db` (Windows),
   `~/Library/Application Support/com.tempodesk.desktop/tempodesk.db` (macOS),
   `~/.local/share/com.tempodesk.desktop/tempodesk.db` (Linux).
+- Development database: sibling `com.tempodesk.desktop.dev`; test databases live under
+  `.test-data/` in this repository and are git-ignored.
 - Pre-restore safety backups: `<app-data>/backups/`.
 - No network calls, analytics, accounts, or cloud. No screenshots/keystrokes/URLs/window titles.
   Idle detection is opt-in, local-only, and only reads the OS aggregate idle duration.

@@ -461,6 +461,8 @@ pub struct PlatformInfo {
     pub app_version: String,
     pub data_dir: String,
     pub db_path: String,
+    /// "production" | "development" | "test"
+    pub data_profile: String,
     pub idle_available: bool,
     pub idle_unavailable_reason: Option<String>,
     pub tray_available: bool,

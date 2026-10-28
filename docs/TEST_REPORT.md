@@ -30,6 +30,8 @@ rusqlite 0.40.2 (bundled SQLite).
 | Installed app launch + DB in app-data | Pass |
 | 10,000-entry report | **108.6 ms** (debug), totals exact |
 | UI flows through WebView2 CDP | Pass (details below) |
+| Production/dev/test data isolation | **Pass** — dev profile at `%APPDATA%\com.tempodesk.desktop.dev`; UI tests at `.test-data/run-*` (`dataProfile: test`); installed app stayed running untouched |
+| Guard against production UI tests | **Pass** — debug/test builds allowed; release smoke refused without explicit opt-in |
 
 Commands used (run with the MinGW/Rust `bin` directories on `PATH`; close the running app before
 `cargo check` on Windows because the executable file is locked):
@@ -46,8 +48,8 @@ cargo fmt --manifest-path src-tauri/Cargo.toml --check
 cargo check --manifest-path src-tauri/Cargo.toml
 npx tauri build --debug --no-bundle
 npx tauri build --bundles nsis
-npm run smoke
-npm run smoke -- --release
+npm run smoke               # debug: isolated .test-data profile
+npm run smoke -- --release  # blocked unless ALLOW_PRODUCTION_TESTS=1
 ```
 
 `npm run check` runs the combined static/test suite and passed at the end of implementation.
@@ -123,6 +125,8 @@ recovery/quit.
 | `ui-quit-keep` + `check-quit-keep` | Quit with **Keep running** → relaunch recovery prompt reason `running_at_launch`; Continue resumes the same session, then stop | Pass |
 | `check-hidden-timer` (manual follow-up) | Start timer → WM_CLOSE hides window (visible=false) → wait → second launch restores first instance → same active entry, elapsed grew from ~0 to 17 s; single process | Pass |
 | `check-installed` | Installed package launches, platform info reports `%APPDATA%\com.tempodesk.desktop\tempodesk.db`, UI rendered | Pass |
+| `ui-bulk-delete` | Select two entries, bulk-delete (only those two soft-deleted with one transaction timestamp), third entry untouched, batch Undo restores both; Select-all excludes the running entry; self-contained fixtures | Pass |
+| Profile isolation | Installed production app (pid 2284) stayed running while a Dev build reported `dataProfile: development` at `%APPDATA%\com.tempodesk.desktop.dev`, and the test launcher reported `dataProfile: test` at `.test-data/run-*`; bulk actions ran only on the test DB. `npm run smoke` uses a test directory; release smoke refused without `ALLOW_PRODUCTION_TESTS=1`. | Pass |
 
 ### Screenshots (evidence)
 

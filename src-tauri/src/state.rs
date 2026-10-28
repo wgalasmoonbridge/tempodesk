@@ -15,14 +15,50 @@ pub struct AppState {
     settings: Mutex<AppSettings>,
     recovery: Mutex<Option<RecoveryInfo>>,
     data_dir: PathBuf,
+    data_profile: String,
     app_version: String,
     shortcut_warnings: Mutex<Vec<String>>,
     shortcut_status: Mutex<ShortcutStatus>,
     tray_available: AtomicBool,
 }
 
+/// Resolve the data directory for this build.
+///
+/// Release/production builds always use the OS app-data directory. Debug builds use a sibling
+/// `...-dev` directory (or a directory explicitly supplied via `TEMPO_DATA_DIR`) so development,
+/// UI tests, and crash tests can never touch the installed app's database or backups.
+pub fn resolve_data_dir(
+    base: &Path,
+    debug: bool,
+    override_dir: Option<&str>,
+) -> (PathBuf, &'static str) {
+    if !debug {
+        return (base.to_path_buf(), "production");
+    }
+    if let Some(raw) = override_dir
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return (PathBuf::from(raw), "test");
+    }
+    let name = base
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("tempodesk");
+    if name.to_ascii_lowercase().contains("dev") {
+        return (base.to_path_buf(), "development");
+    }
+    let parent = base.parent().unwrap_or_else(|| Path::new("."));
+    (parent.join(format!("{name}-dev")), "development")
+}
+
 impl AppState {
-    pub fn bootstrap(data_dir: PathBuf, app_version: String) -> Result<Self> {
+    pub fn bootstrap(base_data_dir: PathBuf, app_version: String) -> Result<Self> {
+        let (data_dir, data_profile) = resolve_data_dir(
+            &base_data_dir,
+            cfg!(debug_assertions),
+            std::env::var("TEMPO_DATA_DIR").ok().as_deref(),
+        );
         std::fs::create_dir_all(&data_dir)?;
         let db_path = data_dir.join("tempodesk.db");
         let conn = db::open_at(&db_path)?;
@@ -42,6 +78,7 @@ impl AppState {
             settings: Mutex::new(settings),
             recovery: Mutex::new(recovery),
             data_dir,
+            data_profile: data_profile.to_string(),
             app_version,
             shortcut_warnings: Mutex::new(Vec::new()),
             shortcut_status: Mutex::new(ShortcutStatus {
@@ -94,6 +131,14 @@ impl AppState {
 
     pub fn data_dir(&self) -> &Path {
         &self.data_dir
+    }
+
+    pub fn data_profile(&self) -> &str {
+        &self.data_profile
+    }
+
+    pub fn is_production(&self) -> bool {
+        self.data_profile == "production"
     }
 
     pub fn backups_dir(&self) -> PathBuf {

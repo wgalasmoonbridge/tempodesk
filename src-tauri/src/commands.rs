@@ -84,6 +84,7 @@ pub fn get_platform_info(state: State<'_, AppState>) -> Result<PlatformInfo> {
         app_version: state.app_version().to_string(),
         data_dir: state.data_dir().display().to_string(),
         db_path: state.db_path().display().to_string(),
+        data_profile: state.data_profile().to_string(),
         idle_available: platform::idle::is_available(),
         idle_unavailable_reason: platform::idle::unavailable_reason(),
         tray_available: state.tray_available(),

@@ -60,6 +60,52 @@ export async function connect() {
     return result.result?.value;
   };
 
+  // Hard safety guard: UI automation must never drive the installed production profile unless the
+  // caller explicitly opts in (read-only packaging checks). This runs before any test code can
+  // mutate data.
+  const allowProduction = process.env.ALLOW_PRODUCTION_TESTS === "1";
+  let platformInfo = null;
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    try {
+      const info = await evaluate(
+        "window.__TAURI_INTERNALS__?.invoke?.('get_platform_info')",
+      );
+      if (info && info.dataDir) {
+        platformInfo = info;
+        break;
+      }
+    } catch {
+      /* app still booting */
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  if (!platformInfo) {
+    ws.close();
+    throw new Error(
+      "Could not determine the TempoDesk data profile; refusing to run UI automation.",
+    );
+  }
+  const isolatedProfile =
+    platformInfo.dataProfile === "test" ||
+    platformInfo.dataProfile === "development";
+  if (!isolatedProfile && !allowProduction) {
+    ws.close();
+    throw new Error(
+      `Refusing to run UI automation against the ${platformInfo.dataProfile ?? "unknown"} profile at ${platformInfo.dataDir}. ` +
+        "Start a dev/test build with TEMPO_DATA_DIR set (see scripts/launch-test-app.mjs), or set " +
+        "ALLOW_PRODUCTION_TESTS=1 only for read-only packaging checks.",
+    );
+  }
+  if (!isolatedProfile) {
+    console.warn(
+      `[cdp] WARNING: production profile explicitly allowed: ${platformInfo.dataDir}`,
+    );
+  } else {
+    console.log(
+      `[cdp] profile=${platformInfo.dataProfile} data=${platformInfo.dataDir}`,
+    );
+  }
+
   const waitFor = async (expression, { timeout = 8000, label = expression } = {}) => {
     const started = Date.now();
     while (Date.now() - started < timeout) {
@@ -151,7 +197,7 @@ export async function connect() {
   const text = () => evaluate("document.body.innerText");
 
   const webSocket = ws;
-  return { send, evaluate, waitFor, click, clickAria, type, typeAt, select, screenshot, text, close: () => webSocket.close() };
+  return { send, evaluate, waitFor, click, clickAria, type, typeAt, select, screenshot, text, platformInfo, close: () => webSocket.close() };
 }
 
 export function assert(condition, message) {

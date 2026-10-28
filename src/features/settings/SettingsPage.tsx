@@ -826,6 +826,20 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
                     <span className="badge">MVP</span>
                   </div>
                 </div>
+                {platform && platform.dataProfile !== "production" ? (
+                  <div className="setting-row">
+                    <div className="setting-main">
+                      <div className="setting-title">Data profile</div>
+                      <div className="setting-desc">
+                        This is a {platform.dataProfile} build. It uses a separate data directory
+                        and cannot read or modify the installed app's data.
+                      </div>
+                    </div>
+                    <div className="setting-control">
+                      <span className="badge badge-accent">{platform.dataProfile}</span>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="setting-row">
                   <div className="setting-main">
                     <div className="setting-title">Platform</div>

@@ -47,8 +47,11 @@ Legend: **Verified** = run on this host; **Implemented** = code present, not run
 
 ## macOS implementation notes (unverified)
 
-- **Bundle identifier:** `com.tempodesk.desktop`. The NSIS/Windows data path is documented above;
-  macOS uses Application Support.
+- **Bundle identifier:** `com.tempodesk.desktop` (production) and `com.tempodesk.desktop.dev`
+  (development). The NSIS/Windows data paths are documented above; macOS uses Application Support.
+- **Data isolation:** Release builds always use the production app-data directory and ignore
+  `TEMPO_DATA_DIR`. Debug builds use a sibling `...dev` directory (or `TEMPO_DATA_DIR`), so running
+  `npm run tauri:dev`, UI tests, or crash tests can never open the installed app’s database.
 - **Window:** native traffic lights and titlebar; no custom fake titlebar.
 - **Menu:** a `TempoDesk` app menu is added with About, Settings (⌘,), Hide/Hide Others/Show All and
   Quit; File/Edit/Window/Help menus include standard editing items.

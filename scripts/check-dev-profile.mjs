@@ -1,0 +1,10 @@
+import { connect, assert } from "./cdp-lib.mjs";
+const cdp = await connect();
+const info = cdp.platformInfo;
+assert(info.dataProfile === "development", "default dev build uses development profile");
+assert(info.dataDir.toLowerCase().endsWith("com.tempodesk.desktop.dev"), "separate dev data directory");
+assert(!info.dataDir.toLowerCase().includes("roaming\com.tempodesk.desktop\\"), "not production path");
+console.log(JSON.stringify(info, null, 2));
+await cdp.evaluate("setTimeout(() => window.__TAURI_INTERNALS__.invoke('quit_app', { stopTimer: false }), 50); true");
+console.log("PASS default dev profile isolation");
+cdp.close();

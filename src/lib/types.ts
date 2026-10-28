@@ -284,11 +284,14 @@ export interface SettingsUpdateResult {
   warnings: string[];
 }
 
+export type DataProfile = "production" | "development" | "test";
+
 export interface PlatformInfo {
   platform: string;
   appVersion: string;
   dataDir: string;
   dbPath: string;
+  dataProfile: DataProfile;
   idleAvailable: boolean;
   idleUnavailableReason: string | null;
   trayAvailable: boolean;

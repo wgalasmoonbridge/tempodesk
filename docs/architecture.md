@@ -19,6 +19,7 @@ tempodesk-core (core/)  ← no Tauri dependency, unit/integration tested
    └── storage::*           SQLite repositories, migrations, settings
    ▼
 SQLite (OS app-data directory, WAL, foreign keys)
+   production / development / test profiles isolated (identifier + data directory)
 ```
 
 The UI never runs SQL and never invokes a shell. The Tauri shell exposes only the command list in
@@ -62,6 +63,12 @@ CREATE UNIQUE INDEX time_entries_one_active
 
 NULL values are distinct in SQLite indexes, so only the single `1` value is constrained. A second
 unfinished row is rejected even if two callers race.
+
+Data-directory isolation: release builds resolve the official OS app-data path and ignore
+`TEMPO_DATA_DIR`. Debug builds resolve a sibling `...-dev` directory, or an explicit
+`TEMPO_DATA_DIR` test directory, and report the profile (`production`, `development`, `test`) via
+`get_platform_info`. This keeps development, UI automation, and crash tests away from installed-app
+data.
 
 Runtime pragmas: `foreign_keys=ON`, `journal_mode=WAL`, `synchronous=NORMAL`, `temp_store=MEMORY`,
 5s busy timeout. Startup runs `PRAGMA integrity_check`; a failure halts startup rather than resetting

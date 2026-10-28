@@ -37,10 +37,14 @@ pub fn run() {
             let handle = app.handle().clone();
             let data_dir = app.path().app_data_dir()?;
             let state = AppState::bootstrap(data_dir, app.package_info().version.to_string())?;
+            let is_dev = !state.is_production();
             app.manage(state);
 
             let start_hidden = std::env::args().any(|arg| arg == "--autostart");
             if let Some(window) = app.get_webview_window("main") {
+                if is_dev {
+                    let _ = window.set_title("TempoDesk Dev");
+                }
                 if start_hidden {
                     let _ = window.hide();
                 } else {

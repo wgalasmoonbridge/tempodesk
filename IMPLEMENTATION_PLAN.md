@@ -176,6 +176,13 @@ Legend: `[x]` implemented + verified on Windows (or noted partial).
 | AC-19 | **Partial (manual)** | Labels/focus trap/keyboard/responsive verified structurally; full SR walkthrough manual |
 | AC-20 | **Pass** | Installer built + installed + launched + app-data DB |
 
+## Post-MVP hardening
+
+- Data isolation added: Debug/dev builds and UI tests use separate app identifiers/data directories
+  (`com.tempodesk.desktop.dev`, `TEMPO_DATA_DIR` test profiles) and cannot open installed-app data;
+  UI automation refuses production profiles unless explicitly opted in. Verified with the installed
+  production app left running during dev/tests.
+
 ## Deviations from PRD
 
 1. **GNU toolchain on Windows** instead of MSVC due to host constraints (documented above).
