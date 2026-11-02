@@ -279,6 +279,15 @@ offers the local summary.
 - Timesheet/History show sub-minute durations as seconds (`3s`) and minute-level ranges for longer
   entries; the underlying data keeps exact seconds.
 
+## Project website
+
+The dependency-free static website lives in [`site/`](site/) and deploys through
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml). Preview it locally with:
+
+```bash
+npx vite site
+```
+
 ## Documentation
 
 - [CHANGELOG.md](CHANGELOG.md) — release notes and known limitations.
