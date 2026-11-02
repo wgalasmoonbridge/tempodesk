@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import {
   BarChart3,
   CalendarDays,
+  CalendarRange,
   CircleHelp,
   Command,
   FolderKanban,
@@ -21,6 +22,7 @@ import { Button, IconButton } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
 import { TrackerPage } from "../features/timer/TrackerPage";
 import { TimesheetPage } from "../features/timesheet/TimesheetPage";
+import { CalendarPage } from "../features/calendar/CalendarPage";
 import { ReportsPage } from "../features/reports/ReportsPage";
 import { ProjectsPage } from "../features/projects/ProjectsPage";
 import { ClientsPage } from "../features/clients/ClientsPage";
@@ -36,6 +38,7 @@ import { formatDateLong, todayKey } from "../lib/time";
 const NAV_ITEMS: { route: Route; label: string; icon: typeof Timer; group: string }[] = [
   { route: "tracker", label: "Time Tracker", icon: Timer, group: "Track" },
   { route: "timesheet", label: "Timesheet", icon: CalendarDays, group: "Track" },
+  { route: "calendar", label: "Calendar", icon: CalendarRange, group: "Track" },
   { route: "reports", label: "Reports", icon: BarChart3, group: "Track" },
   { route: "projects", label: "Projects", icon: FolderKanban, group: "Organize" },
   { route: "clients", label: "Clients", icon: Building2, group: "Organize" },
@@ -45,6 +48,7 @@ const NAV_ITEMS: { route: Route; label: string; icon: typeof Timer; group: strin
 const PAGE_TITLES: Record<Route, string> = {
   tracker: "Time Tracker",
   timesheet: "Timesheet",
+  calendar: "Calendar",
   reports: "Reports",
   projects: "Projects",
   clients: "Clients",
@@ -318,6 +322,7 @@ export function App() {
 
                 {route === "tracker" ? <TrackerPage /> : null}
                 {route === "timesheet" ? <TimesheetPage /> : null}
+                {route === "calendar" ? <CalendarPage /> : null}
                 {route === "reports" ? <ReportsPage /> : null}
                 {route === "projects" ? <ProjectsPage /> : null}
                 {route === "clients" ? <ClientsPage /> : null}

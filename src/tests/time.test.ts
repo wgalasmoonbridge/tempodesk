@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  calendarSegments,
+  calendarSelection,
+  minuteFromPointer,
+  minuteToTimeValue,
+} from "../features/calendar/calendarLayout";
+import type { TimeEntry } from "../lib/types";
+import {
   addDaysKey,
   effectiveTimeZone,
   formatDuration,
@@ -68,6 +75,14 @@ describe("manual entry instants", () => {
     expect(zonedDateTimeToUtcMs("2026-03-08", "03:30", NY)).toBe(
       Date.UTC(2026, 2, 8, 7, 30, 0),
     );
+    // 02:30 does not exist; creation moves forward to the first valid instant at 03:00.
+    expect(zonedDateTimeToUtcMs("2026-03-08", "02:30", NY)).toBe(
+      Date.UTC(2026, 2, 8, 7, 0, 0),
+    );
+    // The repeated 01:30 chooses the earlier occurrence during fall-back.
+    expect(zonedDateTimeToUtcMs("2026-11-01", "01:30", NY)).toBe(
+      Date.UTC(2026, 10, 1, 5, 30, 0),
+    );
     // DST ended on Oct 25, 2026 in Berlin: 09:05 CET = 08:05 UTC.
     expect(zonedDateTimeToUtcMs("2026-10-28", "09:05", BERLIN)).toBe(
       Date.UTC(2026, 9, 28, 8, 5, 0),
@@ -133,6 +148,65 @@ describe("calendar helpers", () => {
   it("falls back to a valid zone for unknown values", () => {
     expect(effectiveTimeZone("Not/AZone")).toBeTruthy();
     expect(effectiveTimeZone(UTC)).toBe(UTC);
+  });
+});
+
+describe("calendar timeline", () => {
+  it("snaps click and drag selections to quarter hours", () => {
+    expect(calendarSelection(9 * 60 + 7, 9 * 60 + 7)).toEqual({
+      startMinute: 9 * 60,
+      endMinute: 10 * 60,
+    });
+    expect(calendarSelection(10 * 60 + 8, 9 * 60 + 6)).toEqual({
+      startMinute: 9 * 60,
+      endMinute: 10 * 60 + 15,
+    });
+    expect(minuteFromPointer(360, 1440)).toBe(360);
+    expect(minuteToTimeValue(23 * 60 + 45)).toBe("23:45");
+    expect(minuteToTimeValue(24 * 60)).toBe("00:00");
+  });
+
+  it("clips overnight entries into each visible calendar day", () => {
+    const start = zonedDateTimeToUtcMs("2026-10-28", "23:30", UTC);
+    const end = zonedDateTimeToUtcMs("2026-10-29", "00:30", UTC);
+    const entry = {
+      id: "entry-1",
+      description: "Overnight",
+      projectId: null,
+      projectName: null,
+      projectColor: null,
+      clientId: null,
+      clientName: null,
+      startAtUtc: start,
+      endAtUtc: end,
+      durationSeconds: 3600,
+      isBillable: false,
+      source: "manual",
+      tags: [],
+      running: false,
+      deletedAtUtc: null,
+      createdAtUtc: start,
+      updatedAtUtc: start,
+    } satisfies TimeEntry;
+    const segments = calendarSegments(
+      [entry],
+      ["2026-10-28", "2026-10-29"],
+      UTC,
+      end,
+    );
+    expect(segments).toHaveLength(2);
+    expect(segments[0]).toMatchObject({
+      date: "2026-10-28",
+      startMinute: 23 * 60 + 30,
+      endMinute: 24 * 60,
+      endsAfterDay: true,
+    });
+    expect(segments[1]).toMatchObject({
+      date: "2026-10-29",
+      startMinute: 0,
+      endMinute: 30,
+      startsBeforeDay: true,
+    });
   });
 });
 

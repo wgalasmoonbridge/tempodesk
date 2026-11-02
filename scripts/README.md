@@ -51,6 +51,7 @@ node scripts/ui-entries.mjs     # edit, delete/undo, overnight, theme
 node scripts/ui-org.mjs         # clients, tags, project classification/archives
 node scripts/ui-idle.mjs        # real idle API + review split
 node scripts/ui-settings2.mjs   # cell editor, report filter, week start, autostart
+node scripts/ui-calendar.mjs    # day/week timeline, drag-create, edit block
 node scripts/ui-resize.mjs      # 860x700 responsive layout
 node scripts/ui-closepref.mjs   # close-to-tray off → quit dialog
 node scripts/check-scroll.mjs   # content pane has a working vertical scroll range

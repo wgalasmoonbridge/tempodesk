@@ -1219,7 +1219,7 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
                 <div className="setting-row">
                   <div className="setting-main">
                     <div className="setting-title">Version</div>
-                    <div className="setting-desc">TempoDesk {platform?.appVersion ?? "0.1.0"}</div>
+                    <div className="setting-desc">TempoDesk {platform?.appVersion ?? "0.2.0"}</div>
                   </div>
                   <div className="setting-control">
                     <span className="badge">MVP</span>

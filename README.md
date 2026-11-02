@@ -1,8 +1,8 @@
 # TempoDesk
 
 **Private, local-first desktop time tracking.** TempoDesk is a Tauri 2 desktop app for Windows and
-macOS with one running timer, manual entries, projects/clients/tags, a weekly timesheet, reports,
-CSV export, native tray/menu-bar controls, global shortcuts, opt-in idle review, and local
+macOS with one running timer, manual entries, projects/clients/tags, a weekly timesheet, a visual
+calendar, reports, CSV export, native tray/menu-bar controls, global shortcuts, opt-in idle review, and local
 backup/restore. No account, no cloud, no telemetry. The only optional network feature is a
 user-triggered AI summary using your own Gemini API key.
 
@@ -12,13 +12,14 @@ user-triggered AI summary using your own Gemini API key.
 
 The **P0 MVP is implemented and verified on Windows 11 (x64)**. macOS code paths are implemented
 but **not tested** on this host; see [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SUPPORT.md).
-P1 features (calendar timeline, Pomodoro, foreground-app auto-tracking, PDF/XLSX, sync) are out of
-scope and were not started.
+The first P1 feature, a visual day/week calendar timeline, is implemented. Pomodoro,
+foreground-app auto-tracking, PDF/XLSX, rates, and sync have not been started.
 
-- 47 Rust tests (39 unit + 8 integration), 22 TypeScript/Vitest tests.
+- 50 Rust tests (41 unit + 9 integration), 24 TypeScript/Vitest tests.
 - Real UI flows verified through WebView2 DevTools automation (create project, timer, manual
   entries, edit/delete/undo, overnight validation, tags/clients/projects, timesheet cell editor,
-  reports filters, backup/restore, CSV totals, idle review, crash recovery, quit policies,
+  calendar drag-to-create/edit and day/week switching, reports filters, backup/restore, CSV totals,
+  idle review, crash recovery, quit policies,
   close-to-tray, single instance, themes, responsive 860px layout).
 - NSIS installer built and installed per-user; installed app launches and writes to the OS
   app-data directory.
@@ -68,7 +69,7 @@ npm run tauri:build        # production build + installer for the host
 The installer for this verified Windows build is at:
 
 ```text
-src-tauri/target/release/bundle/nsis/TempoDesk_0.1.0_x64-setup.exe
+src-tauri/target/release/bundle/nsis/TempoDesk_0.2.0_x64-setup.exe
 ```
 
 It installs per-user (no admin prompt) to `%LOCALAPPDATA%\TempoDesk`. The installer is unsigned;
@@ -100,7 +101,7 @@ TempoDesk deliberately separates production, development, and test profiles:
 
 ## Five-minute demonstration (M1 checkpoint)
 
-1. **Launch** `TempoDesk_0.1.0_x64-setup.exe` (or `npm run tauri:dev`). The first-run onboarding
+1. **Launch** `TempoDesk_0.2.0_x64-setup.exe` (or `npm run tauri:dev`). The first-run onboarding
    appears (three steps, skippable) and the local SQLite database is created immediately.
 2. **Create a project**: *Projects → New project*, name it, choose a color, optionally a client,
    save. It appears in the start-session project selector.
@@ -146,6 +147,8 @@ in `%APPDATA%\com.tempodesk.desktop` unless you delete it.
   day-grouped entries split at local midnight.
 - **Timesheet**: Monday/Sunday week start, project+task rows, day cells with underlying sessions,
   cell editor and add-entry flow, day/week totals.
+- **Calendar**: visual day/week timeline using the same saved entries, project-colored blocks,
+  local-midnight clipping, overlap lanes, 15-minute drag-to-create, and click-to-edit.
 - **Reports**: Today/This week/Last week/This month/Custom, shared project/client/tag/billable
   filters, summary cards, daily bar chart, project/client breakdown, sortable detail table,
   RFC 4180 CSV export with matching totals.
@@ -276,6 +279,7 @@ offers the local summary.
 
 ## Documentation
 
+- [CHANGELOG.md](CHANGELOG.md) — release notes and known limitations.
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — milestones, FR checklist, acceptance matrix.
 - [docs/architecture.md](docs/architecture.md) — data model, time math, IPC, platform behavior.
 - [docs/TEST_REPORT.md](docs/TEST_REPORT.md) — commands, results, evidence, untested items.

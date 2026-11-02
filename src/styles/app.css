@@ -2002,6 +2002,226 @@ button {
   margin-top: 1px;
 }
 
+/* -------------------------------- calendar -------------------------------- */
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.calendar-scroll {
+  height: min(72vh, 720px);
+  min-height: 480px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.calendar-grid {
+  display: grid;
+  width: max-content;
+  min-width: 100%;
+  align-items: start;
+}
+
+.calendar-corner,
+.calendar-day-head {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  height: 52px;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.calendar-corner {
+  left: 0;
+  z-index: 8;
+  border-right: 1px solid var(--border);
+}
+
+.calendar-day-head {
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+
+.calendar-day-head.today {
+  background: var(--accent-soft);
+}
+
+.calendar-day-head button {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-size: 10.5px;
+}
+
+.calendar-day-head button:hover {
+  color: var(--accent);
+}
+
+.calendar-day-head strong {
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.calendar-time-axis {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  height: 1440px;
+  background: var(--surface-raised);
+  border-right: 1px solid var(--border);
+}
+
+.calendar-time-axis span {
+  position: absolute;
+  right: 8px;
+  transform: translateY(-50%);
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  white-space: nowrap;
+}
+
+.calendar-time-axis span:first-child {
+  transform: none;
+  top: 3px !important;
+}
+
+.calendar-day-column {
+  position: relative;
+  height: 1440px;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 14px,
+      color-mix(in srgb, var(--border) 35%, transparent) 14px,
+      color-mix(in srgb, var(--border) 35%, transparent) 15px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 59px,
+      var(--border) 59px,
+      var(--border) 60px
+    );
+}
+
+.calendar-day-column.today {
+  background-color: color-mix(in srgb, var(--accent-soft) 24%, transparent);
+}
+
+.calendar-entry {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  z-index: 2;
+  min-height: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 5px;
+  padding: 3px 5px;
+  color: var(--text);
+  text-align: left;
+  line-height: 1.2;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.calendar-entry:hover,
+.calendar-entry:focus-visible {
+  z-index: 4;
+  filter: saturate(115%);
+  box-shadow: var(--shadow-md);
+}
+
+.calendar-entry.running {
+  outline: 1px solid var(--accent);
+}
+
+.calendar-entry strong,
+.calendar-entry span,
+.calendar-entry i {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-entry strong {
+  font-size: 10.5px;
+  font-weight: 650;
+}
+
+.calendar-entry span,
+.calendar-entry i {
+  margin-top: 2px;
+  color: var(--text-soft);
+  font-size: 9.5px;
+  font-style: normal;
+}
+
+.calendar-entry i {
+  color: var(--accent);
+}
+
+.calendar-selection {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  z-index: 4;
+  border: 1px dashed var(--accent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  padding: 3px 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.calendar-now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  height: 1px;
+  background: var(--danger);
+  pointer-events: none;
+}
+
+.calendar-now span {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
 /* ------------------------------- responsive ------------------------------ */
 
 @media (max-width: 1000px) {
@@ -2047,6 +2267,9 @@ button {
   .two-col,
   .breakdown-grid {
     grid-template-columns: 1fr;
+  }
+  .calendar-scroll {
+    height: min(70vh, 660px);
   }
 }
 

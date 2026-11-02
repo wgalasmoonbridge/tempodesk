@@ -173,8 +173,50 @@ export function zonedDateTimeToUtcMs(
   const minute = Number(minuteRaw ?? 0);
   const second = Number(secondRaw ?? 0);
   const target = Date.UTC(year, month - 1, day, hour, minute, second);
+  const wallValue = (instant: number) => {
+    const parts = zonedParts(instant, tz);
+    return Date.UTC(
+      parts.year,
+      parts.month - 1,
+      parts.day,
+      parts.hour,
+      parts.minute,
+      parts.second,
+    );
+  };
+
+  // Sampling both sides of the date captures offsets before and after a DST transition. Exact
+  // matches are preferred, with the earlier instant chosen for an ambiguous fall-back time.
+  const offsets = new Set(
+    [-36, -12, 0, 12, 36].map((hours) => tzOffsetMs(tz, target + hours * HOUR)),
+  );
+  const candidates = [...offsets].map((offset) => target - offset);
+  const exact = candidates
+    .filter((candidate) => wallValue(candidate) === target)
+    .sort((a, b) => a - b);
+  const exactMatch = exact[0];
+  if (exactMatch !== undefined) return Math.floor(exactMatch / 1000) * 1000;
+
+  // A spring-forward wall time may not exist. Resolve it to the first valid instant after the gap,
+  // matching the backend's rule for nonexistent local midnights instead of silently moving back.
+  const after = candidates
+    .filter((candidate) => wallValue(candidate) > target)
+    .sort((a, b) => wallValue(a) - wallValue(b))[0];
+  if (after !== undefined) {
+    let probe = after;
+    for (let index = 0; index < 180; index += 1) {
+      const previous = probe - 60_000;
+      if (wallValue(previous) < target) {
+        return Math.floor(probe / 1000) * 1000;
+      }
+      probe = previous;
+    }
+  }
+
+  // Fixed-offset and unusual historical zones should already match above; retain a bounded
+  // iterative fallback rather than returning an unvalidated nominal UTC timestamp.
   let guess = target;
-  for (let i = 0; i < 4; i += 1) {
+  for (let index = 0; index < 4; index += 1) {
     const next = target - tzOffsetMs(tz, guess);
     if (next === guess) break;
     guess = next;

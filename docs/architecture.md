@@ -169,6 +169,9 @@ synchronized with the OS on every settings update.
 ## 9. Frontend state
 
 `AppProvider` loads platform/settings/status/metadata, subscribes to typed Tauri events, re-syncs on
-window focus, and exposes actions. Pages fetch their own report/timesheet/filter data from IPC. The
-theme provider follows `prefers-color-scheme` with manual override. A top-level error boundary keeps
+window focus, and exposes actions. Pages fetch their own report/timesheet/calendar range data from
+IPC. The calendar is a visual projection of `time_entries`: it clips blocks to local day boundaries,
+uses wall-clock placement with DST-safe UTC conversion for creation, and opens the shared entry
+editor rather than maintaining a second ledger. The theme provider follows `prefers-color-scheme`
+with manual override. A top-level error boundary keeps
 the DB safe if the UI crashes and offers a reload.

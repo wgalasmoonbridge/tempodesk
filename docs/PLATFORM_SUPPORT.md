@@ -9,7 +9,7 @@ FFI, but it is **unverified** until tested on real hardware/CI.
 | Capability | Windows 11 | macOS 13+ |
 |---|---|---|
 | Build status on this repo | **Verified** (GNU toolchain) | Not built here |
-| Installer | **NSIS built + installed** (`TempoDesk_0.1.0_x64-setup.exe`) | Not built; `dmg`/`app` target configured generically, needs macOS host |
+| Installer | **0.2.0 NSIS + MSI built**; prior 0.1.0 NSIS install verified | Not built; `dmg`/`app` target configured generically, needs macOS host |
 | Native titlebar/window controls | **Verified** | Implemented (Tauri native decorations), unverified |
 | Native menu bar | **Verified visually** (File/Edit/Window/Help) | Implemented (app menu added on macOS), unverified |
 | System tray / menu-bar icon | Created (`trayAvailable: true`); menu actions not click-tested | Implemented with tray title elapsed time; unverified |

@@ -4403,7 +4403,7 @@ dependencies = [
 
 [[package]]
 name = "tempodesk"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -4429,7 +4429,7 @@ dependencies = [
 
 [[package]]
 name = "tempodesk-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "chrono-tz",

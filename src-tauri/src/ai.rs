@@ -25,7 +25,7 @@ fn client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_secs(60))
-        .user_agent("TempoDesk/0.1.0")
+        .user_agent(format!("TempoDesk/{}", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|err| AppError::Internal(format!("Could not initialize the AI client: {err}")))
 }

@@ -1,7 +1,7 @@
 # TempoDesk — Implementation Plan & Status
 
-Source of truth: `PRD.md` (v1.0, 2026-10-28). This plan tracks the **P0 MVP**. P1 items
-(calendar, Pomodoro, activity auto-tracking, PDF/XLSX, cloud sync) are intentionally not started.
+Source of truth: `PRD.md` (v1.0, 2026-10-28). The **P0 MVP** is complete. P1 calendar is now
+implemented; Pomodoro, activity auto-tracking, rates, PDF/XLSX, updater/signing, and sync remain.
 
 **Status as of 2026-10-28:** M0–M5 complete on Windows 11 x64. P0 implemented; macOS unverified.
 Detailed test evidence: [docs/TEST_REPORT.md](docs/TEST_REPORT.md).
@@ -63,7 +63,7 @@ render, settings persisted, `npm run check` passes.
 | M1-6 | Local-midnight/DST-safe day math | L | [x] |
 
 **Exit evidence:** AC-01, AC-04, AC-05, AC-06, AC-08 pass (Rust + real UI). Kill/relaunch recovery
-verified. Overnight 23:30→00:30 splits correctly. 47 Rust tests total (39 unit + 8 integration).
+verified. Overnight 23:30→00:30 splits correctly. 50 Rust tests total (41 unit + 9 integration).
 
 ### M2 — Projects, clients, tags & history editing — **COMPLETE**
 | # | Task | Complexity | Status |
@@ -176,6 +176,15 @@ Legend: `[x]` implemented + verified on Windows (or noted partial).
 | AC-18 | **Pass** | 10k report 108.6 ms debug, exact totals |
 | AC-19 | **Partial (manual)** | Labels/focus trap/keyboard/responsive verified structurally; full SR walkthrough manual |
 | AC-20 | **Pass** | Installer built + installed + launched + app-data DB |
+
+## P1 progress
+
+- **P1-001 Calendar view — COMPLETE:** day/week timeline, project-colored entry blocks,
+  local-midnight clipping, overlap lanes, 15-minute drag-to-create, and click-to-edit. It uses the
+  existing entry ledger and validation rather than creating a second calendar data model. Windows
+  release bundles built as `TempoDesk_0.2.0_x64-setup.exe` and `TempoDesk_0.2.0_x64_en-US.msi`.
+- P1-002 Pomodoro, P1-003 activity tracking, P1-004 rate cards, P1-005 PDF/XLSX, and signed updater
+  pipelines remain unstarted.
 
 ## Post-MVP hardening
 

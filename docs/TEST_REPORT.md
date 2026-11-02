@@ -1,9 +1,12 @@
 # TempoDesk Test Report
 
-**Date:** 2026-10-28  
-**Host:** Windows 11 x64 (10.0.26200.9711)  
-**Build under test:** debug `src-tauri/target/debug/tempodesk.exe`, release + NSIS installer
-`TempoDesk_0.1.0_x64-setup.exe` (5.84 MiB)  
+**Date:** 2026-11-02
+
+**Host:** Windows 11 x64 (10.0.26200.9711)
+
+**Build under test:** TempoDesk 0.2.0 debug `src-tauri/target/debug/tempodesk.exe`, release binary,
+NSIS `TempoDesk_0.2.0_x64-setup.exe` (7.07 MiB), and MSI (10.55 MiB)
+
 **Toolchain:** Node 24.22.0, npm 11.19.1, Rust 1.99.1 `x86_64-pc-windows-gnu`, MinGW-w64 GCC
 16.2.0 (UCRT), Tauri 2.12.5, React 19.3.1, Vite 7.3.7, TypeScript 5.9.3, Vitest 3.2.7,
 rusqlite 0.40.2 (bundled SQLite).
@@ -15,9 +18,9 @@ rusqlite 0.40.2 (bundled SQLite).
 
 | Area | Result |
 |---|---|
-| Rust unit tests (`tempodesk-core`) | **39 passed** |
-| Rust integration tests (filters, CSV, 10k, timer, tag history, bulk) | **8 passed** |
-| Frontend Vitest suites | **22 passed** (2 files) |
+| Rust unit tests (`tempodesk-core`) | **41 passed** |
+| Rust integration tests (filters, CSV, 10k, timer, tag history, bulk, duplicate) | **9 passed** |
+| Frontend Vitest suites | **24 passed** (2 files) |
 | `tsc --noEmit` | Pass |
 | ESLint | Pass (0 warnings) |
 | `cargo fmt --check` (core + shell) | Pass |
@@ -25,9 +28,9 @@ rusqlite 0.40.2 (bundled SQLite).
 | `cargo check` (Tauri shell) | Pass |
 | Debug app launch | Pass |
 | Release build | Pass |
-| NSIS installer build | Pass (latest AI build: 7.07 MiB) |
-| Installer silent per-user install | Exit 0 |
-| Installed app launch + DB in app-data | Pass |
+| 0.2.0 NSIS + MSI bundle build | Pass (7.07 MiB / 10.55 MiB) |
+| Installer silent per-user install | Prior 0.1.0 package: Exit 0 |
+| Installed app launch + DB in app-data | Prior 0.1.0 package: Pass |
 | 10,000-entry report | **108.6 ms** (debug), totals exact |
 | UI flows through WebView2 CDP | Pass (details below) |
 | Production/dev/test data isolation | **Pass** — dev profile at `%APPDATA%\com.tempodesk.desktop.dev`; UI tests at `.test-data/run-*` (`dataProfile: test`); installed app stayed running untouched |
@@ -56,7 +59,7 @@ npm run smoke -- --release  # blocked unless ALLOW_PRODUCTION_TESTS=1
 
 ## 2. Rust test coverage
 
-### Unit tests (33)
+### Unit tests (41)
 
 - **summary**: local summary totals/projects/tasks/tags/observations; empty ranges; prompt includes aggregates and respects the description-exclusion setting; Gemini success/error/blocked response parsing.
 - **timeutil**: local midnight, 23-hour spring-forward day, 25-hour fall-back day, DST elapsed
@@ -74,7 +77,7 @@ npm run smoke -- --release  # blocked unless ALLOW_PRODUCTION_TESTS=1
   survives backup/restore, CSV export, path extension validation.
 - **settings**: defaults, persistence, validation, runtime state.
 
-### Integration tests (8, `core/tests/filters_and_perf.rs`)
+### Integration tests (9, `core/tests/filters_and_perf.rs`)
 
 1. `entry_filters_share_one_computation` — project/client/tag/billable/search/date/sort/soft-delete
    filters, LIKE escaping (`%`), includeDeleted.
@@ -93,14 +96,18 @@ npm run smoke -- --release  # blocked unless ALLOW_PRODUCTION_TESTS=1
 8. `bulk_delete_and_restore_are_transactional_and_report_skips` — three entries deleted in one
    transaction, running/unknown IDs skipped with reasons, batch restore recovers all three,
    re-restore reports `not_deleted`, empty batch rejected.
+9. `duplicate_entry_copies_metadata_and_interval` — duplicates a completed entry as a new saved
+   session while preserving classification and leaving the source unchanged.
 
-## 3. Frontend tests (21)
+## 3. Frontend tests (24)
 
 - IANA-zone day boundaries: 23h/25h DST days, midnight timestamps, formatted times.
 - Local date/time conversion including seconds and DST offsets.
 - Midnight splitting, DST session allocation, overnight allocations.
 - Week starts, report presets, duration formatting (including negative and sub-minute), invalid
   timezone fallback.
+- Calendar 15-minute selection snapping, pointer-position conversion, midnight time values, and
+  cross-midnight block clipping.
 - Manual form validation: same-day, overnight flag prompt, >24h, future start, second precision.
 - Names/colors/settings validation.
 
@@ -128,6 +135,7 @@ recovery/quit.
 | `check-installed` | Installed package launches, platform info reports `%APPDATA%\com.tempodesk.desktop\tempodesk.db`, UI rendered | Pass |
 | `ui-bulk-delete` | Select two entries, bulk-delete (only those two soft-deleted with one transaction timestamp), third entry untouched, batch Undo restores both; Select-all excludes the running entry; self-contained fixtures | Pass |
 | `ui-ai-summary` | AI settings consent/enable, fake Gemini key saved to and removed from the test-profile OS credential store (never returned by IPC/settings), local weekly summary in Reports, weekly summary from Timesheet, daily summary from Tracker | Pass |
+| `ui-calendar.mjs` | Seven-column week view, real pointer drag 14:00→15:30, saved block, click-to-edit, day/week switching, screenshot | Pass |
 | Profile isolation | Installed production app (pid 2284) stayed running while a Dev build reported `dataProfile: development` at `%APPDATA%\com.tempodesk.desktop.dev`, and the test launcher reported `dataProfile: test` at `.test-data/run-*`; bulk actions ran only on the test DB. `npm run smoke` uses a test directory; release smoke refused without `ALLOW_PRODUCTION_TESTS=1`. | Pass |
 
 ### Screenshots (evidence)
@@ -147,6 +155,7 @@ recovery/quit.
 - `scroll-fixed.png` — vertical scrolling in the reports view after the fix
 - `bulk-select.png`, `bulk-confirm.png` — bulk selection toolbar and batch delete confirmation
 - `ai-settings.png`, `ai-key-configured.png`, `ai-summary-local.png` — AI configuration, configured key, and offline high-level summary
+- `calendar.png` — week timeline with a drag-created and edited entry
 - `installed-app.png`
 
 ## 5. Acceptance criteria matrix
@@ -244,10 +253,12 @@ documented there.
 
 ## 9. Build/package evidence
 
-- Debug build: `src-tauri/target/debug/tempodesk.exe` — launch smoke passed.
-- Release build: `src-tauri/target/release/tempodesk.exe` — launch smoke passed.
-- Installer: `src-tauri/target/release/bundle/nsis/TempoDesk_0.1.0_x64-setup.exe` (7.07 MiB), rebuilt with AI summaries. It was **not installed** while the user’s production app was running; the earlier install/launch test remains valid for packaging, but the latest binary will be installed on the next closed-app install.
-- Silent install (`/S`) exit 0; installed to `%LOCALAPPDATA%\TempoDesk`; installed app launched and
-  reported the roaming app-data DB path.
+- 0.2.0 debug build: `src-tauri/target/debug/tempodesk.exe` — calendar UI verification passed.
+- 0.2.0 release build: `src-tauri/target/release/tempodesk.exe` — compiled successfully.
+- 0.2.0 NSIS: `src-tauri/target/release/bundle/nsis/TempoDesk_0.2.0_x64-setup.exe` (7.07 MiB).
+- 0.2.0 MSI: `src-tauri/target/release/bundle/msi/TempoDesk_0.2.0_x64_en-US.msi` (10.55 MiB).
+- The 0.2.0 bundles were not installed over the user’s running production copy. The earlier 0.1.0
+  silent install and installed-app launch remain valid packaging evidence; install/upgrade of 0.2.0
+  is still a manual release check.
 - Linker warning on GNU: `.rsrc merge failure: multiple non-default manifests`; app/installer still
   work. MSVC is recommended for production/signing.

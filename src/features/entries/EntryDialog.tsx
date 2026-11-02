@@ -26,6 +26,9 @@ interface EntryDialogProps {
   defaultDate?: string;
   defaultProjectId?: string | null;
   defaultDescription?: string;
+  defaultStartTime?: string;
+  defaultEndTime?: string;
+  defaultNextDay?: boolean;
   onSaved?: (created: CreatedEntry) => void;
 }
 
@@ -40,6 +43,9 @@ export function EntryDialog({
   defaultDate,
   defaultProjectId,
   defaultDescription,
+  defaultStartTime,
+  defaultEndTime,
+  defaultNextDay,
   onSaved,
 }: EntryDialogProps) {
   const { projects, tags, settings } = useAppData();
@@ -92,9 +98,9 @@ export function EntryDialog({
       // Around midnight, one hour ago can be yesterday; default the form to that date so the
       // computed start is never in the future.
       setDate(defaultDate ?? startDateKey);
-      setStartTime(zonedTimeValue(start, timezone));
-      setEndTime(zonedTimeValue(end, timezone));
-      setNextDay(startDateKey !== endDateKey);
+      setStartTime(defaultStartTime ?? zonedTimeValue(start, timezone));
+      setEndTime(defaultEndTime ?? zonedTimeValue(end, timezone));
+      setNextDay(defaultNextDay ?? (startDateKey !== endDateKey));
       setDescription(defaultDescription ?? "");
       setProjectId(defaultProjectId ?? "");
       setTagIds([]);
@@ -103,7 +109,17 @@ export function EntryDialog({
     }
     // Only reset when the dialog opens or the edited entry changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, entry?.id, defaultDate, defaultProjectId, defaultDescription, timezone]);
+  }, [
+    open,
+    entry?.id,
+    defaultDate,
+    defaultProjectId,
+    defaultDescription,
+    defaultStartTime,
+    defaultEndTime,
+    defaultNextDay,
+    timezone,
+  ]);
 
   const formValues: ManualFormValues = {
     date,
