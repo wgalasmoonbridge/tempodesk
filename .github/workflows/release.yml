@@ -19,8 +19,8 @@ jobs:
           - name: Windows x64
             os: windows-latest
             args: ""
-          - name: macOS
-            os: macos-latest
+          - name: macOS Intel
+            os: macos-15-intel
             args: ""
 
     runs-on: ${{ matrix.os }}
