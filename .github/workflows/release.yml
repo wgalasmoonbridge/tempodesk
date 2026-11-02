@@ -1,0 +1,69 @@
+name: Release desktop bundles
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            args: ""
+          - name: macOS
+            os: macos-latest
+            args: ""
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust builds
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            core -> target
+            src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Verify frontend
+        run: npm run typecheck && npm run lint && npm run test
+
+      - name: Build and publish TempoDesk
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: TempoDesk __VERSION__
+          releaseBody: |
+            TempoDesk 0.2.0 adds the visual day/week Calendar timeline, drag-to-create entries,
+            overlap lanes, click-to-edit, and improved DST handling.
+
+            This is an unsigned prerelease. See CHANGELOG.md for verification evidence, checksums
+            for the locally built Windows artifacts, and known platform limitations.
+          releaseDraft: false
+          prerelease: true
+          args: ${{ matrix.args }}
