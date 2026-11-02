@@ -4,6 +4,7 @@ import {
   Accessibility,
   Archive,
   Bell,
+  BellRing,
   Check,
   Database,
   Download,
@@ -45,6 +46,7 @@ type Section =
   | "desktop"
   | "shortcuts"
   | "idle"
+  | "reminders"
   | "ai"
   | "data"
   | "privacy"
@@ -56,6 +58,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Timer }[] = [
   { id: "desktop", label: "Tray & startup", icon: Laptop },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "idle", label: "Idle detection", icon: Bell },
+  { id: "reminders", label: "Reminders", icon: BellRing },
   { id: "ai", label: "AI summaries", icon: Sparkles },
   { id: "data", label: "Data & backup", icon: Database },
   { id: "privacy", label: "Privacy", icon: ShieldCheck },
@@ -102,15 +105,18 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
   const [toggleShortcut, setToggleShortcut] = useState(settings.toggleShortcut);
   const [shortcutErrors, setShortcutErrors] = useState<string[]>([]);
   const [idleThreshold, setIdleThreshold] = useState(settings.idleThresholdMinutes);
+  const [reminderMinutes, setReminderMinutes] = useState(settings.trackingReminderMinutes);
 
   useEffect(() => {
     setOpenShortcut(settings.openShortcut);
     setToggleShortcut(settings.toggleShortcut);
     setIdleThreshold(settings.idleThresholdMinutes);
+    setReminderMinutes(settings.trackingReminderMinutes);
   }, [
     settings.openShortcut,
     settings.toggleShortcut,
     settings.idleThresholdMinutes,
+    settings.trackingReminderMinutes,
   ]);
 
   useEffect(() => {
@@ -780,6 +786,77 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
                   Sleep and clock gaps are also queued for review.
                 </p>
               </div>
+            </div>
+          ) : null}
+
+          {section === "reminders" ? (
+            <div className="settings-section">
+              <h2>Tracking reminders</h2>
+              <p>
+                A gentle nudge when you haven't started a timer for a while. Off by default and
+                fully local.
+              </p>
+              <div className="card">
+                <div className="setting-row">
+                  <div className="setting-main">
+                    <div className="setting-title">Remind me when I'm not tracking</div>
+                    <div className="setting-desc">
+                      One notification per episode, so it never spams. Starting a timer re-arms the
+                      reminder.
+                    </div>
+                  </div>
+                  <div className="setting-control">
+                    <Switch
+                      checked={settings.trackingReminderEnabled}
+                      label="Remind me when I'm not tracking"
+                      disabled={saving}
+                      onChange={(value) =>
+                        void save(
+                          { trackingReminderEnabled: value },
+                          value ? "Tracking reminders enabled" : "Tracking reminders disabled",
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="setting-row">
+                  <div className="setting-main">
+                    <div className="setting-title">Remind after</div>
+                    <div className="setting-desc">
+                      How long without a running timer before the notification (5–480 minutes).
+                    </div>
+                  </div>
+                  <div className="setting-control">
+                    <input
+                      className="input"
+                      type="number"
+                      min={5}
+                      max={480}
+                      value={reminderMinutes}
+                      aria-label="Tracking reminder delay in minutes"
+                      disabled={!settings.trackingReminderEnabled || saving}
+                      onChange={(event) => setReminderMinutes(Number(event.target.value))}
+                      onBlur={() => {
+                        if (
+                          reminderMinutes >= 5 &&
+                          reminderMinutes <= 480 &&
+                          reminderMinutes !== settings.trackingReminderMinutes
+                        ) {
+                          void save(
+                            { trackingReminderMinutes: reminderMinutes },
+                            "Reminder delay updated",
+                          );
+                        }
+                      }}
+                    />
+                    <span className="field-hint">minutes</span>
+                  </div>
+                </div>
+              </div>
+              <p className="field-hint">
+                Reminders appear as a native notification with an in-app toast as fallback. They
+                only depend on the local timer state, never on account or network.
+              </p>
             </div>
           ) : null}
 

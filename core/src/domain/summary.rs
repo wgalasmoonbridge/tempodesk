@@ -458,6 +458,13 @@ mod tests {
                 seconds: 3600,
                 billable_seconds: 3600,
             }],
+            by_tag: vec![GroupTotal {
+                id: Some("tag-id".into()),
+                name: "focus".into(),
+                color: None,
+                seconds: 3600,
+                billable_seconds: 3600,
+            }],
             entries: vec![
                 entry(
                     "Build API",
@@ -496,6 +503,7 @@ mod tests {
         empty.entries.clear();
         empty.by_project.clear();
         empty.by_client.clear();
+        empty.by_tag.clear();
         let summary = local_summary(&empty);
         assert!(summary.contains("No time was tracked"));
     }

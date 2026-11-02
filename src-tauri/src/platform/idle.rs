@@ -5,7 +5,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::domain::idle;
 use crate::domain::timeutil;
 use crate::state::AppState;
-use crate::storage::repo_settings;
+use crate::storage::{repo_entries, repo_settings};
 
 /// Returns the number of seconds since the last user input, if the OS exposes it.
 #[cfg(windows)]
@@ -78,6 +78,8 @@ pub fn spawn(app: AppHandle) {
             let mut last_tick = timeutil::now_ms();
             let mut last_persist = last_tick;
             let mut last_tray = last_tick;
+            let mut reminder_anchor: Option<i64> = None;
+            let mut reminder_sent = false;
             loop {
                 std::thread::sleep(Duration::from_secs(5));
                 let now = timeutil::now_ms();
@@ -144,6 +146,38 @@ pub fn spawn(app: AppHandle) {
                             }
                         }
                     }
+                }
+
+                // Tracking reminder: one native notification per "not tracking" episode, so it
+                // never spams. Starting a timer re-arms the reminder for the next episode.
+                if settings.tracking_reminder_enabled {
+                    let active = state
+                        .db()
+                        .ok()
+                        .and_then(|db| repo_entries::get_active(&db).ok())
+                        .flatten();
+                    if active.is_some() {
+                        reminder_anchor = None;
+                        reminder_sent = false;
+                    } else if reminder_anchor.is_none() {
+                        reminder_anchor = Some(now);
+                        reminder_sent = false;
+                    } else if !reminder_sent
+                        && now - reminder_anchor.unwrap_or(now)
+                            >= i64::from(settings.tracking_reminder_minutes) * 60_000
+                    {
+                        reminder_sent = true;
+                        notify(
+                            &app,
+                            "Track your time",
+                            "You haven't started a timer in a while. Start one to keep accurate records.",
+                        );
+                        // In-app fallback when native notifications are unavailable or denied.
+                        let _ = app.emit("tracking-reminder", ());
+                    }
+                } else {
+                    reminder_anchor = None;
+                    reminder_sent = false;
                 }
 
                 if changed {

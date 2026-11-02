@@ -1,4 +1,4 @@
-import { Pencil, Play, Trash2 } from "lucide-react";
+import { Copy, Pencil, Play, Trash2 } from "lucide-react";
 import { IconButton } from "../../components/Button";
 import { BillableBadge, ProjectChip, TagChip } from "../../components/Badge";
 import { entryTimeRange, entryTitle } from "../../lib/format";
@@ -17,6 +17,7 @@ interface EntryRowProps {
   selected: boolean;
   onToggleSelected: (entry: TimeEntry) => void;
   onResume: (entry: TimeEntry) => void;
+  onDuplicate: (entry: TimeEntry) => void;
   onEdit: (entry: TimeEntry) => void;
   onDelete: (entry: TimeEntry) => void;
 }
@@ -33,6 +34,7 @@ export function EntryRow({
   selected,
   onToggleSelected,
   onResume,
+  onDuplicate,
   onEdit,
   onDelete,
 }: EntryRowProps) {
@@ -77,6 +79,12 @@ export function EntryRow({
           label={`Resume “${entryTitle(entry)}” as a new timer`}
           icon={<Play size={14} aria-hidden="true" />}
           onClick={() => onResume(entry)}
+          disabled={entry.running}
+        />
+        <IconButton
+          label={`Duplicate “${entryTitle(entry)}”`}
+          icon={<Copy size={14} aria-hidden="true" />}
+          onClick={() => onDuplicate(entry)}
           disabled={entry.running}
         />
         <IconButton

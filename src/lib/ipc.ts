@@ -59,6 +59,8 @@ export const api = {
     call<TimeEntry[]>("list_entries", { filter }),
   createManualEntry: (input: ManualEntryInput) =>
     call<CreatedEntry>("create_manual_entry", { input }),
+  duplicateEntry: (entryId: string) =>
+    call<CreatedEntry>("duplicate_entry", { entryId }),
   updateEntry: (id: string, input: EntryUpdateInput) =>
     call<CreatedEntry>("update_entry", { id, input }),
   deleteEntry: (id: string) => call<void>("delete_entry", { id }),

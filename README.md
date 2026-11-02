@@ -155,6 +155,8 @@ in `%APPDATA%\com.tempodesk.desktop` unless you delete it.
   optional launch at login, single instance.
 - **Idle review**: off by default; Windows `GetLastInputInfo` / macOS CoreGraphics aggregate idle
   time; one event per episode; Keep / Remove gap (split) / End at idle start; no auto-deletion.
+- **Tracking reminders**: off by default; one native notification (with an in-app toast fallback)
+  per "not tracking" episode after a configurable 5–480 minute delay. Starting a timer re-arms it.
 - **Data**: versioned migrations, WAL, foreign keys, partial unique index enforcing one active
   timer, transactional backup/restore, safety backup, RFC 4180 CSV, no arbitrary SQL/shell IPC.
 - **Accessibility**: labelled controls, visible focus, focus-trapped dialogs, keyboard shortcuts,
@@ -231,6 +233,7 @@ Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-chan
 | Close window to tray | On |
 | Launch at login | Off |
 | Idle detection | Off, 5-minute threshold when enabled |
+| Tracking reminder | Off, 30-minute delay when enabled |
 | AI summaries | Off; Gemini; model `gemini-2.5-flash`; descriptions included only after consent |
 | Open/hide shortcut | `CommandOrControl+Shift+T` |
 | Start/stop shortcut | `CommandOrControl+Shift+Y` |

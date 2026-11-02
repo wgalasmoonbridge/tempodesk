@@ -558,6 +558,54 @@ fn timer_flow_enforces_one_active_entry_and_resume_copy_semantics() {
 }
 
 #[test]
+fn duplicate_entry_copies_metadata_and_interval() {
+    use tempodesk_core::domain::timer;
+    use tempodesk_core::models::StartTimerInput;
+
+    let mut f = fixture();
+    let entries =
+        repo_entries::list_entries(&f.conn, &EntryFilter::default(), None, None, f.now).unwrap();
+    let source = entries
+        .iter()
+        .find(|e| e.description == "Alpha work")
+        .unwrap()
+        .clone();
+
+    let copy = timer::duplicate(&mut f.conn, &source.id, f.now).unwrap();
+    assert_ne!(copy.entry.id, source.id);
+    assert_eq!(copy.entry.description, source.description);
+    assert_eq!(copy.entry.project_id, source.project_id);
+    assert_eq!(copy.entry.tags.len(), 1);
+    assert_eq!(copy.entry.tags[0].id, source.tags[0].id);
+    assert_eq!(copy.entry.is_billable, source.is_billable);
+    assert_eq!(copy.entry.start_at_utc, source.start_at_utc);
+    assert_eq!(copy.entry.end_at_utc, source.end_at_utc);
+    assert_eq!(copy.entry.duration_seconds, source.duration_seconds);
+    assert_eq!(copy.entry.source, "manual");
+    assert!(!copy.entry.running);
+
+    // The original entry is unchanged.
+    let original = repo_entries::get_entry(&f.conn, &source.id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(original, source);
+
+    // A running entry cannot be duplicated.
+    let running = timer::start(
+        &mut f.conn,
+        &StartTimerInput {
+            description: Some("Running".into()),
+            project_id: None,
+            tag_ids: None,
+            is_billable: Some(false),
+        },
+        f.now,
+    )
+    .unwrap();
+    assert!(timer::duplicate(&mut f.conn, &running.id, f.now).is_err());
+}
+
+#[test]
 fn editing_an_entry_keeps_soft_deleted_tag_association() {
     use tempodesk_core::domain::timer;
     use tempodesk_core::models::{EntryUpdateInput, ManualEntryInput};

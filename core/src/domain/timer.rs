@@ -222,6 +222,59 @@ pub fn resume(
     load_entry(conn, &id)
 }
 
+/// Duplicate a completed entry as a new manual entry, copying its metadata and interval.
+/// The original entry is unchanged; the copy can then be edited (e.g. moved to another day).
+pub fn duplicate(conn: &mut Connection, entry_id: &str, now: i64) -> Result<CreatedEntry> {
+    let source = load_entry(conn, entry_id)?;
+    if source.running {
+        return Err(AppError::conflict(
+            "Stop the running timer before duplicating it",
+        ));
+    }
+    if source.deleted_at_utc.is_some() {
+        return Err(AppError::not_found("Time entry not found"));
+    }
+    let end_at = source
+        .end_at_utc
+        .ok_or_else(|| AppError::conflict("Cannot duplicate a running entry"))?;
+    let duration = (end_at - source.start_at_utc) / 1000;
+
+    let tag_ids: Vec<String> = source.tags.iter().map(|t| t.id.clone()).collect();
+    let meta = resolve_meta(
+        conn,
+        Some(&source.description),
+        source.project_id.as_deref(),
+        Some(&tag_ids),
+        Some(source.is_billable),
+        true,
+    )?;
+
+    let id = Uuid::new_v4().to_string();
+    let tx = conn.transaction()?;
+    tx.execute(
+        "INSERT INTO time_entries
+           (id, description, project_id, start_at_utc, end_at_utc, duration_seconds,
+            is_billable, source, created_at_utc, updated_at_utc)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'manual', ?8, ?8)",
+        rusqlite::params![
+            id,
+            meta.description,
+            meta.project_id,
+            source.start_at_utc,
+            end_at,
+            duration,
+            i64::from(meta.is_billable),
+            now
+        ],
+    )?;
+    repo_entries::set_entry_tags(&tx, &id, &meta.tag_ids)?;
+    tx.commit()?;
+
+    let entry = load_entry(conn, &id)?;
+    let overlaps = repo_entries::find_overlaps(conn, source.start_at_utc, end_at, Some(&id), now)?;
+    Ok(CreatedEntry { entry, overlaps })
+}
+
 pub fn create_manual(
     conn: &mut Connection,
     input: &ManualEntryInput,

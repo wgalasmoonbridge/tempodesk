@@ -238,6 +238,7 @@ export interface ReportResult {
   daily: DailyTotal[];
   byProject: GroupTotal[];
   byClient: GroupTotal[];
+  byTag: GroupTotal[];
   entries: ReportEntry[];
 }
 
@@ -256,6 +257,8 @@ export interface AppSettings {
   launchAtLogin: boolean;
   idleTrackingEnabled: boolean;
   idleThresholdMinutes: number;
+  trackingReminderEnabled: boolean;
+  trackingReminderMinutes: number;
   shortcutsEnabled: boolean;
   openShortcut: string;
   toggleShortcut: string;
@@ -277,6 +280,8 @@ export interface SettingsPatch {
   launchAtLogin?: boolean;
   idleTrackingEnabled?: boolean;
   idleThresholdMinutes?: number;
+  trackingReminderEnabled?: boolean;
+  trackingReminderMinutes?: number;
   shortcutsEnabled?: boolean;
   openShortcut?: string;
   toggleShortcut?: string;

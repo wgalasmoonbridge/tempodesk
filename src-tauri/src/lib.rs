@@ -96,6 +96,7 @@ pub fn run() {
             commands::get_recovery_info,
             commands::list_entries,
             commands::create_manual_entry,
+            commands::duplicate_entry,
             commands::update_entry,
             commands::delete_entry,
             commands::restore_entry,

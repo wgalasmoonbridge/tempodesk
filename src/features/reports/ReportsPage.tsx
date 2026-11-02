@@ -373,6 +373,7 @@ export function ReportsPage() {
           <div className="breakdown-grid">
             <BreakdownCard title="By project" groups={report.byProject} decimal={decimal} />
             <BreakdownCard title="By client" groups={report.byClient} decimal={decimal} />
+            <BreakdownCard title="By tag" groups={report.byTag} decimal={decimal} />
           </div>
 
           <section aria-labelledby="detailed-heading">

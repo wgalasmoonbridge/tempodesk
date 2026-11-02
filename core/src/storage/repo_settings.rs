@@ -40,6 +40,7 @@ fn normalize_loaded(settings: &mut AppSettings) {
         settings.timezone = "system".into();
     }
     settings.idle_threshold_minutes = settings.idle_threshold_minutes.clamp(1, 60);
+    settings.tracking_reminder_minutes = settings.tracking_reminder_minutes.clamp(5, 480);
     if settings.open_shortcut.trim().is_empty() {
         settings.open_shortcut = "CommandOrControl+Shift+T".into();
     }
@@ -125,6 +126,17 @@ pub fn apply_patch(settings: &mut AppSettings, patch: &SettingsPatch) -> Result<
             ));
         }
         settings.idle_threshold_minutes = value;
+    }
+    if let Some(value) = patch.tracking_reminder_enabled {
+        settings.tracking_reminder_enabled = value;
+    }
+    if let Some(value) = patch.tracking_reminder_minutes {
+        if !(5..=480).contains(&value) {
+            return Err(AppError::validation(
+                "Tracking reminder must be between 5 and 480 minutes",
+            ));
+        }
+        settings.tracking_reminder_minutes = value;
     }
     if let Some(value) = patch.shortcuts_enabled {
         settings.shortcuts_enabled = value;
@@ -273,6 +285,46 @@ mod tests {
                 ..Default::default()
             },
             4000
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn tracking_reminder_settings_validate_and_clamp() {
+        let conn = db::open_in_memory().unwrap();
+        let defaults = load(&conn).unwrap();
+        assert!(!defaults.tracking_reminder_enabled);
+        assert_eq!(defaults.tracking_reminder_minutes, 30);
+
+        let updated = update(
+            &conn,
+            &SettingsPatch {
+                tracking_reminder_enabled: Some(true),
+                tracking_reminder_minutes: Some(45),
+                ..Default::default()
+            },
+            1000,
+        )
+        .unwrap();
+        assert!(updated.tracking_reminder_enabled);
+        assert_eq!(updated.tracking_reminder_minutes, 45);
+
+        assert!(update(
+            &conn,
+            &SettingsPatch {
+                tracking_reminder_minutes: Some(4),
+                ..Default::default()
+            },
+            2000
+        )
+        .is_err());
+        assert!(update(
+            &conn,
+            &SettingsPatch {
+                tracking_reminder_minutes: Some(481),
+                ..Default::default()
+            },
+            3000
         )
         .is_err());
     }

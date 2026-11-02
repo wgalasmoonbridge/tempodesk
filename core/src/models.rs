@@ -346,6 +346,7 @@ pub struct ReportResult {
     pub daily: Vec<DailyTotal>,
     pub by_project: Vec<GroupTotal>,
     pub by_client: Vec<GroupTotal>,
+    pub by_tag: Vec<GroupTotal>,
     pub entries: Vec<ReportEntry>,
 }
 
@@ -385,6 +386,8 @@ pub struct AppSettings {
     pub launch_at_login: bool,
     pub idle_tracking_enabled: bool,
     pub idle_threshold_minutes: u32,
+    pub tracking_reminder_enabled: bool,
+    pub tracking_reminder_minutes: u32,
     pub shortcuts_enabled: bool,
     pub open_shortcut: String,
     pub toggle_shortcut: String,
@@ -408,6 +411,8 @@ impl Default for AppSettings {
             launch_at_login: false,
             idle_tracking_enabled: false,
             idle_threshold_minutes: 5,
+            tracking_reminder_enabled: false,
+            tracking_reminder_minutes: 30,
             shortcuts_enabled: true,
             open_shortcut: "CommandOrControl+Shift+T".into(),
             toggle_shortcut: "CommandOrControl+Shift+Y".into(),
@@ -441,6 +446,10 @@ pub struct SettingsPatch {
     pub idle_tracking_enabled: Option<bool>,
     #[serde(default)]
     pub idle_threshold_minutes: Option<u32>,
+    #[serde(default)]
+    pub tracking_reminder_enabled: Option<bool>,
+    #[serde(default)]
+    pub tracking_reminder_minutes: Option<u32>,
     #[serde(default)]
     pub shortcuts_enabled: Option<bool>,
     #[serde(default)]

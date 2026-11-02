@@ -36,6 +36,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   launchAtLogin: false,
   idleTrackingEnabled: false,
   idleThresholdMinutes: 5,
+  trackingReminderEnabled: false,
+  trackingReminderMinutes: 30,
   shortcutsEnabled: true,
   openShortcut: "CommandOrControl+Shift+T",
   toggleShortcut: "CommandOrControl+Shift+Y",
@@ -253,6 +255,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void add("idle-review-required", () => {
       void refreshIdle();
       void refreshStatus();
+    });
+    void add("tracking-reminder", () => {
+      pushToast({
+        title: "Track your time",
+        message: "You haven't started a timer in a while. Start one to keep accurate records.",
+        tone: "info",
+      });
     });
     void add("shortcut-status", (payload) => {
       setShortcutStatus(payload as ShortcutStatus);

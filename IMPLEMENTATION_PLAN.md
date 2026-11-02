@@ -144,7 +144,7 @@ Legend: `[x]` implemented + verified on Windows (or noted partial).
 | FR-018 | Close-to-tray + quit policy | [x] hide/restore, stop-and-quit, keep-running recovery all verified |
 | FR-019 | Configurable global shortcuts + collisions | [~] registration/validation/disable verified; physical keypress + OS-collision manual |
 | FR-020 | Opt-in idle detection + explicit review | [x] real Windows idle test; one review; split; no auto-delete |
-| FR-021 | Notifications + fallback | [~] notification send wired; in-app fallback verified; OS permission grant/deny manual |
+| FR-021 | Notifications + fallback + tracking reminders | [~] notification send + in-app toast fallback wired; tracking reminders implemented (one per episode, configurable 5–480 min); OS permission grant/deny + live reminder firing manual |
 | FR-022 | Theme/timezone/12-24h/start-of-week/autostart | [x] theme override, week start, autostart registry verified; OS theme live switch manual |
 | FR-023 | First-run onboarding ≤3 steps | [x] 3-step flow verified (project step implemented, skipped in test run) |
 | FR-024 | Backup/restore validation + safety copy | [x] Rust + UI IPC delete/restore; invalid backup changes nothing |

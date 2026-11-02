@@ -89,6 +89,7 @@ export function TrackerPage() {
   const [editEntry, setEditEntry] = useState<TimeEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TimeEntry | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [duplicateBusy, setDuplicateBusy] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -314,6 +315,33 @@ export function TrackerPage() {
       });
     } finally {
       setResumeBusy(false);
+    }
+  };
+
+  const doDuplicate = async (entry: TimeEntry) => {
+    if (duplicateBusy) return;
+    setDuplicateBusy(true);
+    try {
+      const result = await api.duplicateEntry(entry.id);
+      pushToast({
+        title: "Entry duplicated",
+        message:
+          result.overlaps.length > 0
+            ? `Copied as a new entry. ${result.overlaps.length} overlap${
+                result.overlaps.length === 1 ? "" : "s"
+              } detected.`
+            : "Copied as a new entry. Edit it to change the date or time.",
+        tone: result.overlaps.length > 0 ? "warning" : "success",
+      });
+      await refreshAll();
+    } catch (err) {
+      pushToast({
+        title: "Could not duplicate the entry",
+        message: normalizeError(err).message,
+        tone: "error",
+      });
+    } finally {
+      setDuplicateBusy(false);
     }
   };
 
@@ -766,6 +794,7 @@ export function TrackerPage() {
                     if (status?.activeEntry) setResumeTarget(entry);
                     else void doResume(entry, false);
                   }}
+                  onDuplicate={(entry) => void doDuplicate(entry)}
                   onEdit={(entry) => setEditEntry(entry)}
                   onDelete={(entry) => setDeleteTarget(entry)}
                 />

@@ -79,6 +79,7 @@ pub fn get_report(conn: &Connection, filter: &ReportFilter, now: i64) -> Result<
         days.iter().map(|d| (*d, (0i64, 0i64))).collect();
     let mut by_project: HashMap<String, GroupTotal> = HashMap::new();
     let mut by_client: HashMap<String, GroupTotal> = HashMap::new();
+    let mut by_tag: HashMap<String, GroupTotal> = HashMap::new();
     let mut report_entries: Vec<ReportEntry> = Vec::new();
 
     for entry in entries {
@@ -142,6 +143,38 @@ pub fn get_report(conn: &Connection, filter: &ReportFilter, now: i64) -> Result<
             client_group.billable_seconds += in_range;
         }
 
+        // An entry with several tags attributes its full time to each tag, so tag
+        // totals may exceed the report total (expected for a many-to-many grouping).
+        if entry.tags.is_empty() {
+            let tag_group = by_tag
+                .entry("__none__".to_string())
+                .or_insert_with(|| GroupTotal {
+                    id: None,
+                    name: "No tag".to_string(),
+                    color: None,
+                    seconds: 0,
+                    billable_seconds: 0,
+                });
+            tag_group.seconds += in_range;
+            if entry.is_billable {
+                tag_group.billable_seconds += in_range;
+            }
+        } else {
+            for tag in &entry.tags {
+                let tag_group = by_tag.entry(tag.id.clone()).or_insert_with(|| GroupTotal {
+                    id: Some(tag.id.clone()),
+                    name: tag.name.clone(),
+                    color: tag.color.clone(),
+                    seconds: 0,
+                    billable_seconds: 0,
+                });
+                tag_group.seconds += in_range;
+                if entry.is_billable {
+                    tag_group.billable_seconds += in_range;
+                }
+            }
+        }
+
         report_entries.push(ReportEntry {
             entry,
             in_range_seconds: in_range,
@@ -165,6 +198,8 @@ pub fn get_report(conn: &Connection, filter: &ReportFilter, now: i64) -> Result<
     project_vec.sort_by(|a, b| b.seconds.cmp(&a.seconds).then(a.name.cmp(&b.name)));
     let mut client_vec: Vec<GroupTotal> = by_client.into_values().collect();
     client_vec.sort_by(|a, b| b.seconds.cmp(&a.seconds).then(a.name.cmp(&b.name)));
+    let mut tag_vec: Vec<GroupTotal> = by_tag.into_values().collect();
+    tag_vec.sort_by(|a, b| b.seconds.cmp(&a.seconds).then(a.name.cmp(&b.name)));
 
     report_entries.sort_by(|a, b| {
         b.entry
@@ -184,6 +219,7 @@ pub fn get_report(conn: &Connection, filter: &ReportFilter, now: i64) -> Result<
         daily: daily_vec,
         by_project: project_vec,
         by_client: client_vec,
+        by_tag: tag_vec,
         entries: report_entries,
     })
 }
@@ -540,5 +576,91 @@ mod tests {
         assert_eq!(row.cells[2].len(), 2);
         assert_eq!(sheet.days[2].total_seconds, 7200);
         assert_eq!(sheet.total_seconds, 7200);
+    }
+
+    #[test]
+    fn report_groups_by_tag_and_untagged() {
+        let mut conn = db::open_in_memory().unwrap();
+        let z = tz("UTC");
+        let now = ms(z, 2026, 6, 10, 12, 0, 0);
+        let alpha = repo_tags::save(
+            &conn,
+            &TagInput {
+                id: None,
+                name: "alpha".into(),
+                color: None,
+            },
+            now,
+        )
+        .unwrap();
+        let beta = repo_tags::save(
+            &conn,
+            &TagInput {
+                id: None,
+                name: "beta".into(),
+                color: None,
+            },
+            now,
+        )
+        .unwrap();
+
+        add_manual(
+            &mut conn,
+            ms(z, 2026, 6, 1, 9, 0, 0),
+            ms(z, 2026, 6, 1, 10, 0, 0),
+            "only alpha",
+            true,
+            vec![alpha.id.clone()],
+            now,
+        );
+        add_manual(
+            &mut conn,
+            ms(z, 2026, 6, 1, 10, 0, 0),
+            ms(z, 2026, 6, 1, 10, 30, 0),
+            "alpha and beta",
+            false,
+            vec![alpha.id.clone(), beta.id.clone()],
+            now,
+        );
+        add_manual(
+            &mut conn,
+            ms(z, 2026, 6, 1, 10, 30, 0),
+            ms(z, 2026, 6, 1, 10, 40, 0),
+            "untagged",
+            false,
+            vec![],
+            now,
+        );
+
+        let report = get_report(
+            &conn,
+            &ReportFilter {
+                date_from: "2026-06-01".into(),
+                date_to: "2026-06-07".into(),
+                timezone: "UTC".into(),
+                project_id: None,
+                client_id: None,
+                tag_id: None,
+                billable: None,
+                search: None,
+            },
+            now,
+        )
+        .unwrap();
+
+        assert_eq!(report.total_seconds, 6000);
+        let by_name = |name: &str| {
+            report
+                .by_tag
+                .iter()
+                .find(|g| g.name == name)
+                .map(|g| g.seconds)
+                .unwrap()
+        };
+        // Entries with multiple tags attribute full time to each tag.
+        assert_eq!(by_name("alpha"), 5400);
+        assert_eq!(by_name("beta"), 1800);
+        assert_eq!(by_name("No tag"), 600);
+        assert_eq!(report.by_tag.len(), 3);
     }
 }

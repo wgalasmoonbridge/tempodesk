@@ -201,6 +201,21 @@ pub fn create_manual_entry(
 }
 
 #[tauri::command]
+pub fn duplicate_entry(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    entry_id: String,
+) -> Result<CreatedEntry> {
+    let now = timeutil::now_ms();
+    let created = {
+        let mut db = state.db()?;
+        timer::duplicate(&mut db, &entry_id, now)?
+    };
+    emit_changed(&app, "entries-changed");
+    Ok(created)
+}
+
+#[tauri::command]
 pub fn update_entry(
     app: AppHandle,
     state: State<'_, AppState>,

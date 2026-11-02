@@ -33,6 +33,17 @@ export function Dialog({
   const titleId = useId();
   const descId = useId();
 
+  // Keep the latest callbacks in refs so the focus/autofocus effect below only runs
+  // when `open` changes. Depending on `onClose` directly re-ran the effect on every
+  // render (it is often an inline arrow), which re-selected the description input on
+  // each second and broke text editing while a live timer re-rendered the page.
+  const onCloseRef = useRef(onClose);
+  const dismissibleRef = useRef(dismissible);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    dismissibleRef.current = dismissible;
+  });
+
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -44,10 +55,10 @@ export function Dialog({
     if (autofocus instanceof HTMLInputElement) autofocus.select();
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && dismissible) {
+      if (event.key === "Escape" && dismissibleRef.current) {
         event.preventDefault();
         event.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -71,7 +82,7 @@ export function Dialog({
       document.removeEventListener("keydown", onKeyDown, true);
       previous?.focus();
     };
-  }, [open, onClose, dismissible]);
+  }, [open]);
 
   if (!open) return null;
 
