@@ -34,5 +34,6 @@
 
 - Windows bundles are unsigned and use the GNU toolchain; MSVC plus code signing is recommended for
   public distribution.
-- macOS build, signing, notarization, and runtime verification still require a macOS host.
+- Unsigned Intel macOS app/DMG bundles build in GitHub Actions; signing, notarization, installation,
+  and runtime verification still require macOS release credentials/hardware.
 - The 0.2.0 installer upgrade path has not been run over an active production installation.

@@ -213,7 +213,7 @@ Legend: `[x]` implemented + verified on Windows (or noted partial).
 
 ## Remaining blockers / manual checks
 
-- macOS build/run/feature verification (no macOS host).
+- macOS Intel CI build passes; install/run/feature verification still needs macOS hardware.
 - Physical global hotkey press verification (synthetic input blocked in this session).
 - Tray menu click-through, native notification permission allow/deny, native Save/Open dialog
   click-through, and full screen-reader walkthrough.

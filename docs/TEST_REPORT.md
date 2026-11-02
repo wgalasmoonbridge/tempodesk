@@ -28,7 +28,8 @@ rusqlite 0.40.2 (bundled SQLite).
 | `cargo check` (Tauri shell) | Pass |
 | Debug app launch | Pass |
 | Release build | Pass |
-| 0.2.0 NSIS + MSI bundle build | Pass (7.07 MiB / 10.55 MiB) |
+| 0.2.0 Windows NSIS + MSI CI build/publish | Pass |
+| 0.2.0 Intel macOS app + DMG CI build/publish | Pass; runtime unverified |
 | Installer silent per-user install | Prior 0.1.0 package: Exit 0 |
 | Installed app launch + DB in app-data | Prior 0.1.0 package: Pass |
 | 10,000-entry report | **108.6 ms** (debug), totals exact |
@@ -257,6 +258,8 @@ documented there.
 - 0.2.0 release build: `src-tauri/target/release/tempodesk.exe` — compiled successfully.
 - 0.2.0 NSIS: `src-tauri/target/release/bundle/nsis/TempoDesk_0.2.0_x64-setup.exe` (7.07 MiB).
 - 0.2.0 MSI: `src-tauri/target/release/bundle/msi/TempoDesk_0.2.0_x64_en-US.msi` (10.55 MiB).
+- GitHub Actions additionally built/published MSVC Windows bundles and unsigned Intel macOS
+  `TempoDesk_0.2.0_x64.dmg` / `TempoDesk_x64.app.tar.gz` artifacts.
 - The 0.2.0 bundles were not installed over the user’s running production copy. The earlier 0.1.0
   silent install and installed-app launch remain valid packaging evidence; install/upgrade of 0.2.0
   is still a manual release check.

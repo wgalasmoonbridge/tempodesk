@@ -10,8 +10,9 @@ user-triggered AI summary using your own Gemini API key.
 
 ## Status
 
-The **P0 MVP is implemented and verified on Windows 11 (x64)**. macOS code paths are implemented
-but **not tested** on this host; see [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SUPPORT.md).
+The **P0 MVP is implemented and verified on Windows 11 (x64)**. An unsigned Intel macOS app/DMG
+build succeeds in GitHub Actions, but macOS runtime behavior is **not tested** on hardware; see
+[docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SUPPORT.md).
 The first P1 feature, a visual day/week calendar timeline, is implemented. Pomodoro,
 foreground-app auto-tracking, PDF/XLSX, rates, and sync have not been started.
 
@@ -260,8 +261,9 @@ offers the local summary.
 
 ## Known limitations
 
-- **macOS is unverified** on this host (no macOS hardware). Guarded code exists; follow the
-  verification checklist in [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SUPPORT.md).
+- **macOS runtime behavior is unverified** on this host (no macOS hardware). The Intel app/DMG
+  builds successfully in GitHub Actions; follow the runtime checklist in
+  [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SUPPORT.md).
 - **Live Gemini calls are unverified** without a real API key. Local summaries, consent gating,
   prompt construction, response parsing, and OS credential-store round trips are tested.
 - **Global hotkeys could not be exercised by synthetic input** in the automation session. The

@@ -1,15 +1,15 @@
 # Platform Support
 
-TempoDesk targets **Windows 11** and **macOS 13+**. This repository was developed and verified only on
-Windows 11 x64. macOS support is implemented behind Tauri’s cross-platform APIs and guarded macOS
-FFI, but it is **unverified** until tested on real hardware/CI.
+TempoDesk targets **Windows 11** and **macOS 13+**. This repository was developed and runtime-tested
+only on Windows 11 x64. An unsigned Intel macOS app/DMG builds successfully in GitHub Actions, but
+macOS runtime behavior remains **unverified** until tested on real hardware.
 
 ## Support matrix
 
 | Capability | Windows 11 | macOS 13+ |
 |---|---|---|
-| Build status on this repo | **Verified** (GNU toolchain) | Not built here |
-| Installer | **0.2.0 NSIS + MSI built**; prior 0.1.0 NSIS install verified | Not built; `dmg`/`app` target configured generically, needs macOS host |
+| Build status on this repo | **Verified** locally (GNU) and in CI (MSVC) | **Intel CI build passed**; runtime unverified |
+| Installer | **0.2.0 NSIS + MSI published**; prior 0.1.0 NSIS install verified | **0.2.0 unsigned app + DMG published**; install/runtime unverified |
 | Native titlebar/window controls | **Verified** | Implemented (Tauri native decorations), unverified |
 | Native menu bar | **Verified visually** (File/Edit/Window/Help) | Implemented (app menu added on macOS), unverified |
 | System tray / menu-bar icon | Created (`trayAvailable: true`); menu actions not click-tested | Implemented with tray title elapsed time; unverified |
@@ -108,6 +108,6 @@ shortcut/idle support varies by desktop environment and has not been validated. 
 ## Distribution
 
 - Windows: NSIS current-user installer (built, unsigned).
-- macOS: `.app`/`.dmg` via `tauri build` on macOS (not built here).
+- macOS: unsigned Intel `.app`/`.dmg` built and published by GitHub Actions; not runtime-tested.
 - Public distribution requires code signing/notarization and an update pipeline; those are P1 and
   intentionally deferred.
