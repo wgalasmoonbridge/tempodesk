@@ -14,3 +14,4 @@ src-tauri/icons/*.png.bak
 core/target
 
 .test-data/
+.upgrade-backups/

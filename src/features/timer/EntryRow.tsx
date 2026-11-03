@@ -41,7 +41,7 @@ export function EntryRow({
   return (
     <div className={`entry-row${entry.running ? " running" : ""}${selectionMode ? " selecting" : ""}`}>
       {selectionMode ? (
-        <label className="entry-select" title={entry.running ? "Stop the timer before selecting it for deletion" : "Select entry"}>
+        <label className="entry-select" title={entry.running ? "Stop the timer before selecting it for bulk actions" : "Select entry"}>
           <input
             type="checkbox"
             checked={selected}

@@ -2454,3 +2454,17 @@ button {
     animation: none;
   }
 }
+/* Saved tasks, bulk metadata editing, and paginated history. */
+.template-panel { padding: 14px 16px; margin-bottom: 20px; }
+.template-header, .template-list, .template-item, .history-pagination { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.template-header h2 { display: flex; align-items: center; gap: 7px; font-size: 14px; margin: 0; }
+.template-list { margin-top: 12px; }
+.template-item { border: 1px solid var(--border); border-radius: 8px; gap: 0; padding: 2px; max-width: 100%; }
+.template-item > .btn:first-child { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.workflow-form { display: grid; gap: 16px; }
+.workflow-form > label:not(.check-label) { display: grid; gap: 6px; font-size: 13px; }
+.workflow-form .input, .workflow-form .select { width: 100%; }
+.workflow-form .check-label { display: flex; align-items: center; gap: 8px; }
+.history-pagination { margin: 14px 0 24px; }
+.auto-backup-panel { margin-bottom: 16px; }
+.auto-backup-panel .mono { overflow-wrap: anywhere; }

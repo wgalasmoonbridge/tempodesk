@@ -39,6 +39,7 @@ import type {
   ThemeSetting,
 } from "../../lib/types";
 import { formatShortcut } from "../../lib/time";
+import { AutoBackupPanel } from "./AutoBackupPanel";
 
 type Section =
   | "general"
@@ -1099,12 +1100,13 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
                 Everything is stored in a local SQLite database with WAL journaling and foreign
                 keys.
               </p>
+              <AutoBackupPanel />
               <div className="card">
                 <div className="setting-row">
                   <div className="setting-main">
                     <div className="setting-title">Backup all data</div>
                     <div className="setting-desc">
-                      Versioned JSON with clients, projects, tags, entries, tag links, and settings.
+                      Versioned JSON with clients, projects, tags, entries, task templates, and settings.
                       Choose the destination with a native save dialog.
                     </div>
                   </div>
@@ -1289,7 +1291,7 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
       <ConfirmDialog
         open={Boolean(preview)}
         title="Restore this backup?"
-        description="This replaces all current clients, projects, tags, entries, and settings. A safety backup of the current data is created automatically."
+        description="This replaces all current clients, projects, tags, entries, task templates, and settings. A safety backup is created first. Automatic backups are turned off after restore so you can choose a folder for this device."
         confirmLabel={restoring ? "Restoring…" : "Restore backup"}
         busy={restoring}
         onCancel={() => {
@@ -1313,6 +1315,7 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
               <span>Projects: <strong>{preview.counts.projects}</strong></span>
               <span>Clients: <strong>{preview.counts.clients}</strong></span>
               <span>Tags: <strong>{preview.counts.tags}</strong></span>
+              <span>Templates: <strong>{preview.counts.templates}</strong></span>
               <span>Settings: <strong>{preview.counts.settings}</strong></span>
               <span>
                 Created:{" "}

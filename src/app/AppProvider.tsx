@@ -28,6 +28,9 @@ import { useAppliedTheme } from "./theme";
 import { useToast } from "../components/Toast";
 
 const DEFAULT_SETTINGS: AppSettings = {
+  autoBackupEnabled: false,
+  autoBackupDirectory: "",
+  autoBackupRetention: 14,
   theme: "system",
   startOfWeek: "monday",
   timezone: "system",

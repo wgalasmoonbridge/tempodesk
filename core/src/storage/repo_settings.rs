@@ -27,6 +27,13 @@ pub fn load(conn: &Connection) -> Result<AppSettings> {
 }
 
 fn normalize_loaded(settings: &mut AppSettings) {
+    settings.auto_backup_retention = settings.auto_backup_retention.clamp(1, 90);
+    if !settings.auto_backup_directory.is_empty()
+        && !std::path::Path::new(&settings.auto_backup_directory).is_absolute()
+    {
+        settings.auto_backup_directory.clear();
+        settings.auto_backup_enabled = false;
+    }
     if !matches!(settings.theme.as_str(), "system" | "light" | "dark") {
         settings.theme = "system".into();
     }
@@ -81,6 +88,28 @@ pub fn save_all(conn: &Connection, settings: &AppSettings) -> Result<()> {
 }
 
 pub fn apply_patch(settings: &mut AppSettings, patch: &SettingsPatch) -> Result<()> {
+    if let Some(value) = patch.auto_backup_enabled {
+        settings.auto_backup_enabled = value;
+    }
+    if let Some(value) = &patch.auto_backup_directory {
+        let value = value.trim();
+        if !value.is_empty()
+            && (!std::path::Path::new(value).is_absolute() || !std::path::Path::new(value).is_dir())
+        {
+            return Err(AppError::validation(
+                "Choose an existing absolute backup folder",
+            ));
+        }
+        settings.auto_backup_directory = value.to_string();
+    }
+    if let Some(value) = patch.auto_backup_retention {
+        if !(1..=90).contains(&value) {
+            return Err(AppError::validation(
+                "Keep between 1 and 90 automatic backups",
+            ));
+        }
+        settings.auto_backup_retention = value;
+    }
     if let Some(theme) = &patch.theme {
         if !matches!(theme.as_str(), "system" | "light" | "dark") {
             return Err(AppError::validation("Theme must be system, light, or dark"));

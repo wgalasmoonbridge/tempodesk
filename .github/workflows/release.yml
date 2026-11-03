@@ -59,8 +59,11 @@ jobs:
           tagName: v__VERSION__
           releaseName: TempoDesk __VERSION__
           releaseBody: |
-            TempoDesk 0.2.0 adds the visual day/week Calendar timeline, drag-to-create entries,
-            overlap lanes, click-to-edit, and improved DST handling.
+            TempoDesk 0.3.0 adds saved task templates, transactional bulk editing with undo,
+            opt-in automatic local backups with retention, and paginated history with complete totals.
+
+            Existing records are preserved through the schema upgrade. Backup format v2 includes
+            templates and can restore v1 backups. Automatic backup scheduling stays off after restore.
 
             This is an unsigned prerelease. See CHANGELOG.md for verification evidence, checksums
             for the locally built Windows artifacts, and known platform limitations.

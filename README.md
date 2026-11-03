@@ -16,7 +16,7 @@ build succeeds in GitHub Actions, but macOS runtime behavior is **not tested** o
 The first P1 feature, a visual day/week calendar timeline, is implemented. Pomodoro,
 foreground-app auto-tracking, PDF/XLSX, rates, and sync have not been started.
 
-- 50 Rust tests (41 unit + 9 integration), 24 TypeScript/Vitest tests.
+- 57 Rust tests (42 unit + 15 integration), 26 TypeScript/Vitest tests.
 - Real UI flows verified through WebView2 DevTools automation (create project, timer, manual
   entries, edit/delete/undo, overnight validation, tags/clients/projects, timesheet cell editor,
   calendar drag-to-create/edit and day/week switching, reports filters, backup/restore, CSV totals,
@@ -70,7 +70,7 @@ npm run tauri:build        # production build + installer for the host
 The installer for this verified Windows build is at:
 
 ```text
-src-tauri/target/release/bundle/nsis/TempoDesk_0.2.0_x64-setup.exe
+src-tauri/target/release/bundle/nsis/TempoDesk_0.3.0_x64-setup.exe
 ```
 
 It installs per-user (no admin prompt) to `%LOCALAPPDATA%\TempoDesk`. The installer is unsigned;
@@ -102,7 +102,7 @@ TempoDesk deliberately separates production, development, and test profiles:
 
 ## Five-minute demonstration (M1 checkpoint)
 
-1. **Launch** `TempoDesk_0.2.0_x64-setup.exe` (or `npm run tauri:dev`). The first-run onboarding
+1. **Launch** `TempoDesk_0.3.0_x64-setup.exe` (or `npm run tauri:dev`). The first-run onboarding
    appears (three steps, skippable) and the local SQLite database is created immediately.
 2. **Create a project**: *Projects → New project*, name it, choose a color, optionally a client,
    save. It appears in the start-session project selector.
@@ -139,6 +139,15 @@ in `%APPDATA%\com.tempodesk.desktop` unless you delete it.
   support, overlap warnings, sub-minute precision.
 - **Bulk actions**: multi-select history entries, delete a batch in one transaction, and undo the
   whole batch; running entries are excluded.
+- **Saved tasks**: create/edit/delete task templates with a description, project, tags, and billable
+  status. Start from the tracker or native tray. Tracker switching asks before stopping the current
+  timer; the tray requires stopping it first. Saved templates are included in backups.
+- **Bulk editing**: change descriptions, projects, billable status, or add/remove/replace tags across
+  selected completed entries. The batch is transactional; Undo restores metadata together and rejects
+  conflicting later edits. Session times are preserved.
+- **Complete history**: browse 100 sessions per page. The session count and range total cover every
+  matching entry, including histories larger than 1,000 sessions. Day totals are labelled "shown"
+  when the list spans multiple pages.
 - **High-level summaries**: deterministic local summaries plus optional AI summaries for any
   day/week/month range. AI uses a Gemini API key stored in the OS credential store; requests are
   made only when you click Generate.
@@ -163,6 +172,10 @@ in `%APPDATA%\com.tempodesk.desktop` unless you delete it.
   per "not tracking" episode after a configurable 5–480 minute delay. Starting a timer re-arms it.
 - **Data**: versioned migrations, WAL, foreign keys, partial unique index enforcing one active
   timer, transactional backup/restore, safety backup, RFC 4180 CSV, no arbitrary SQL/shell IPC.
+- **Automatic backups**: opt-in snapshots once every 24 hours while the app runs, including in the
+  tray; overdue snapshots run on launch. Choose a local folder and keep 1–90 snapshots (14 by default).
+  Settings shows the last successful backup, location, and any error, with a Back up now action.
+  Retention removes only automatic snapshots after a new snapshot succeeds.
 - **Accessibility**: labelled controls, visible focus, focus-trapped dialogs, keyboard shortcuts,
   reduced-motion support, responsive layout down to ~850px.
 
@@ -222,6 +235,10 @@ Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-chan
 - No analytics, accounts, cloud sync, screenshots/keystrokes/URLs/window titles. Idle detection is
   opt-in, local-only, and only reads the OS aggregate idle duration.
 - Backups are plain-text JSON and can contain sensitive work/client names — store them privately.
+- Backup format v2 includes task templates and can restore older v1 files. Automatic-backup enablement
+  and folder paths are device-specific and excluded from backups; restore leaves scheduling off.
+  Automatic snapshots default to `<app-data>/automatic-backups/`. A chosen folder receives a dedicated
+  `TempoDesk automatic backups` subfolder. Manual and pre-restore safety backups are retained separately.
 - Tauri capabilities are least-privilege. No filesystem or shell plugin is registered; file writes
   are limited to validated absolute paths with `.csv`/`.json` extensions chosen through native
   dialogs.

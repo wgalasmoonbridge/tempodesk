@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.3.0 — 2026-11-03
+
+### Added
+
+- Saved task templates with local CRUD, project/tags/billable metadata, tracker start/switch,
+  and native tray start.
+- Transactional bulk metadata editing with add/remove/replace tags and conflict-aware undo.
+- Opt-in daily local backups with folder selection, retention, last-backup/error status, and
+  immediate backup. Scheduling works while hidden in the tray and catches up on launch.
+- Backup format v2 includes templates and continues to restore v1 backups. Folder paths and
+  automatic scheduling are device-specific and excluded; restore leaves scheduling off.
+
+### Fixed
+
+- History now pages through the full filtered dataset and reports complete counts and totals,
+  replacing the previous 1,000-entry cap. Live totals respect the selected range end.
+- Schema migration v2 preserves existing entries and adds templates and bulk-edit undo records.
+
+### Windows installation verification
+
+- Built and applied the 0.3.0 NSIS installer over the installed 0.2.0 app using update mode.
+- Confirmed all existing time entries, project/client/tag data, stored settings, and the running
+  timer were unchanged after migration and launch. SQLite/JSON backups and the previous executable
+  were retained locally before the upgrade.
+
 ## 0.2.0 — 2026-11-02
 
 ### Added

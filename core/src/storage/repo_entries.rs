@@ -2,7 +2,7 @@ use rusqlite::types::Value;
 use rusqlite::{params_from_iter, Connection, Row};
 
 use crate::error::Result;
-use crate::models::{EntryFilter, OverlapInfo, TagRef, TimeEntry};
+use crate::models::{EntryFilter, EntryPage, OverlapInfo, TagRef, TimeEntry};
 
 pub const ENTRY_SELECT: &str = r#"
 SELECT e.id, e.description, e.project_id, p.name, p.color, p.client_id, c.name,
@@ -65,13 +65,12 @@ pub fn get_active(conn: &Connection) -> Result<Option<TimeEntry>> {
     }
 }
 
-pub fn list_entries(
-    conn: &Connection,
+fn filtered_query(
     filter: &EntryFilter,
     from_ms: Option<i64>,
     to_ms: Option<i64>,
     now_ms: i64,
-) -> Result<Vec<TimeEntry>> {
+) -> (String, Vec<Value>) {
     let mut sql = format!("{ENTRY_SELECT} WHERE 1 = 1");
     let mut values: Vec<Value> = Vec::new();
 
@@ -123,9 +122,20 @@ pub fn list_entries(
         }
     }
 
+    (sql, values)
+}
+
+pub fn list_entries(
+    conn: &Connection,
+    filter: &EntryFilter,
+    from_ms: Option<i64>,
+    to_ms: Option<i64>,
+    now_ms: i64,
+) -> Result<Vec<TimeEntry>> {
+    let (mut sql, mut values) = filtered_query(filter, from_ms, to_ms, now_ms);
     sql.push_str(match filter.sort.as_deref() {
-        Some("start_asc") => " ORDER BY e.start_at_utc ASC, e.created_at_utc ASC",
-        _ => " ORDER BY e.start_at_utc DESC, e.created_at_utc DESC",
+        Some("start_asc") => " ORDER BY e.start_at_utc ASC, e.created_at_utc ASC, e.id ASC",
+        _ => " ORDER BY e.start_at_utc DESC, e.created_at_utc DESC, e.id DESC",
     });
 
     let limit = filter.limit.unwrap_or(5000).clamp(1, 50_000);
@@ -140,6 +150,42 @@ pub fn list_entries(
         out.push(map_entry(row)?);
     }
     Ok(out)
+}
+
+/// Full filtered totals share exactly the list predicates and are independent of its page size.
+pub fn list_page(
+    conn: &Connection,
+    filter: &EntryFilter,
+    from: Option<i64>,
+    to: Option<i64>,
+    now: i64,
+) -> Result<EntryPage> {
+    if from.zip(to).is_some_and(|(from, to)| from >= to) {
+        return Err(crate::error::AppError::validation(
+            "The end date must be on or after the start date",
+        ));
+    }
+    let now = crate::timeutil::align_second(now);
+    let (base, values) = filtered_query(filter, from, to, now);
+    let sql = format!("SELECT COUNT(*), COALESCE(SUM(MAX(0, (MIN(COALESCE(end_at_utc, ?), ?) - MAX(start_at_utc, ?)) / 1000)), 0), MIN(CASE WHEN end_at_utc IS NULL THEN start_at_utc END) FROM ({base})");
+    let mut parameters = vec![
+        Value::Integer(now),
+        Value::Integer(to.unwrap_or(i64::MAX)),
+        Value::Integer(from.unwrap_or(0)),
+    ];
+    parameters.extend(values);
+    let (total_count, total_seconds, running_start): (i64, i64, Option<i64>) =
+        conn.query_row(&sql, params_from_iter(parameters.iter()), |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?;
+    Ok(EntryPage {
+        entries: list_entries(conn, filter, from, to, now)?,
+        total_count,
+        total_seconds,
+        server_now_utc: now,
+        running_start_at_utc: running_start.map(|start| start.max(from.unwrap_or(0))),
+        range_end_utc: to,
+    })
 }
 
 /// All entries (including a running one) overlapping a UTC range, used by reports and timesheets.

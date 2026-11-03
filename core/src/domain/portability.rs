@@ -220,12 +220,15 @@ pub fn build_document(conn: &Connection, app_version: &str, now: i64) -> Result<
     }
 
     let settings_value = serde_json::to_value(repo_settings::load(conn)?)?;
-    let settings = settings_value
+    let mut settings = settings_value
         .as_object()
         .cloned()
         .ok_or_else(|| AppError::Internal("Settings serialization failed".into()))?;
+    settings.remove("autoBackupDirectory");
+    settings.remove("autoBackupEnabled");
 
     Ok(BackupDocument {
+        templates: crate::domain::templates::list(conn)?,
         format: BACKUP_FORMAT.to_string(),
         version: BACKUP_VERSION,
         created_at_utc: now,
@@ -241,6 +244,7 @@ pub fn build_document(conn: &Connection, app_version: &str, now: i64) -> Result<
 
 pub fn counts(document: &BackupDocument) -> BackupCounts {
     BackupCounts {
+        templates: document.templates.len(),
         clients: document.clients.len(),
         projects: document.projects.len(),
         tags: document.tags.len(),
@@ -253,7 +257,7 @@ fn validate_document(document: &BackupDocument) -> Result<()> {
     if document.format != BACKUP_FORMAT {
         return Err(AppError::validation("This file is not a TempoDesk backup"));
     }
-    if document.version != BACKUP_VERSION {
+    if document.version != 1 && document.version != BACKUP_VERSION {
         return Err(AppError::validation(format!(
             "Unsupported backup version {}",
             document.version
@@ -296,6 +300,29 @@ fn validate_document(document: &BackupDocument) -> Result<()> {
         }
         if tag.name.trim().is_empty() {
             return Err(AppError::validation("Backup contains a tag without a name"));
+        }
+    }
+
+    for template in &document.templates {
+        if !ids.insert(("template", template.id.clone())) {
+            return Err(AppError::validation(
+                "Backup contains duplicate template IDs",
+            ));
+        }
+        crate::domain::validate::normalize_name(&template.name, "Template", 120)?;
+        crate::domain::validate::normalize_description(Some(&template.description))?;
+        if template
+            .project_id
+            .as_ref()
+            .is_some_and(|id| !document.projects.iter().any(|p| &p.id == id))
+            || template
+                .tag_ids
+                .iter()
+                .any(|id| !document.tags.iter().any(|tag| &tag.id == id))
+        {
+            return Err(AppError::validation(
+                "Backup template refers to a missing project or tag",
+            ));
         }
     }
 
@@ -440,6 +467,8 @@ pub fn restore_backup(
     write_atomic(&safety_path, &serde_json::to_vec_pretty(&safety_document)?)?;
 
     let tx = conn.transaction()?;
+    tx.execute("DELETE FROM task_templates", [])?;
+    tx.execute("DELETE FROM bulk_edit_undo", [])?;
     tx.execute("DELETE FROM entry_tags", [])?;
     tx.execute("DELETE FROM idle_review_events", [])?;
     tx.execute("DELETE FROM time_entries", [])?;
@@ -539,6 +568,15 @@ pub fn restore_backup(
         }
     }
 
+    // Backup folder paths are machine-specific. Restore into the local default with scheduling off.
+    tx.execute(
+        "DELETE FROM app_settings WHERE key IN ('autoBackupDirectory', 'autoBackupEnabled')",
+        [],
+    )?;
+    for template in &document.templates {
+        tx.execute("INSERT INTO task_templates (id, name, description, project_id, tag_ids_json, is_billable) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![template.id, template.name, template.description, template.project_id, serde_json::to_string(&template.tag_ids)?, template.is_billable])?;
+    }
     tx.execute(
         "INSERT INTO runtime_state (key, value) VALUES ('clean_exit', '0'), ('last_heartbeat_utc', ?1),
          ('restored_at_utc', ?1)",

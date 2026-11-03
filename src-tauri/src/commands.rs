@@ -5,11 +5,13 @@ use crate::domain::{idle, portability, reports, summary, timer, timeutil};
 use crate::error::AppError;
 use crate::error::Result;
 use crate::models::{
-    AiStatus, AiTestResult, AppSettings, AppStatus, BackupPreview, BackupResult, BulkDeleteResult,
-    BulkRestoreResult, Client, ClientInput, CreatedEntry, EntryFilter, EntryUpdateInput,
-    ExportResult, IdleReview, ManualEntryInput, PlatformInfo, Project, ProjectInput, RecoveryInfo,
-    ReportFilter, ReportResult, RestoreResult, SettingsPatch, SettingsUpdateResult, ShortcutStatus,
-    StartTimerInput, SummaryResult, Tag, TagInput, TimeEntry, Timesheet,
+    AiStatus, AiTestResult, AppSettings, AppStatus, AutoBackupStatus, BackupPreview, BackupResult,
+    BulkDeleteResult, BulkEditPatch, BulkEditResult, BulkRestoreResult, Client, ClientInput,
+    CreatedEntry, EntryFilter, EntryPage, EntryUpdateInput, ExportResult, IdleReview,
+    ManualEntryInput, PlatformInfo, Project, ProjectInput, RecoveryInfo, ReportFilter,
+    ReportResult, RestoreResult, SettingsPatch, SettingsUpdateResult, ShortcutStatus,
+    StartTimerInput, SummaryResult, Tag, TagInput, TaskTemplate, TemplateInput, TimeEntry,
+    Timesheet,
 };
 use crate::platform;
 use crate::secrets;
@@ -183,6 +185,105 @@ pub fn list_entries(state: State<'_, AppState>, filter: EntryFilter) -> Result<V
     let (from, to) = resolve_range(&filter)?;
     let db = state.db()?;
     repo_entries::list_entries(&db, &filter, from, to, now)
+}
+
+#[tauri::command]
+pub fn list_entry_page(state: State<'_, AppState>, filter: EntryFilter) -> Result<EntryPage> {
+    let (from, to) = resolve_range(&filter)?;
+    let db = state.db()?;
+    repo_entries::list_page(&db, &filter, from, to, timeutil::now_ms())
+}
+
+#[tauri::command]
+pub fn bulk_edit_entries(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+    patch: BulkEditPatch,
+) -> Result<BulkEditResult> {
+    let result = {
+        let mut db = state.db()?;
+        crate::domain::bulk::edit(&mut db, &ids, &patch, timeutil::now_ms())?
+    };
+    emit_changed(&app, "entries-changed");
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn undo_bulk_edit(app: AppHandle, state: State<'_, AppState>, token: String) -> Result<usize> {
+    let count = {
+        let mut db = state.db()?;
+        crate::domain::bulk::undo(&mut db, &token, timeutil::now_ms())?
+    };
+    emit_changed(&app, "entries-changed");
+    Ok(count)
+}
+
+#[tauri::command]
+pub fn list_templates(state: State<'_, AppState>) -> Result<Vec<TaskTemplate>> {
+    let db = state.db()?;
+    crate::domain::templates::list(&db)
+}
+
+#[tauri::command]
+pub fn save_template(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    input: TemplateInput,
+) -> Result<TaskTemplate> {
+    let template = {
+        let db = state.db()?;
+        crate::domain::templates::save(&db, &input)?
+    };
+    emit_changed(&app, "data-changed");
+    Ok(template)
+}
+
+#[tauri::command]
+pub fn delete_template(app: AppHandle, state: State<'_, AppState>, id: String) -> Result<()> {
+    {
+        let db = state.db()?;
+        crate::domain::templates::delete(&db, &id)?;
+    }
+    emit_changed(&app, "data-changed");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn start_template(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    switch_active: Option<bool>,
+) -> Result<TimeEntry> {
+    let entry = {
+        let mut db = state.db()?;
+        let input = crate::domain::templates::start_input(&db, &id)?;
+        if switch_active.unwrap_or(false) {
+            timer::switch(&mut db, &input, timeutil::now_ms())?
+        } else {
+            timer::start(&mut db, &input, timeutil::now_ms())?
+        }
+    };
+    state.clear_recovery();
+    emit_changed(&app, "timer-state-changed");
+    Ok(entry)
+}
+
+#[tauri::command]
+pub fn get_auto_backup_status(state: State<'_, AppState>) -> Result<AutoBackupStatus> {
+    let db = state.db()?;
+    crate::domain::auto_backup::status(&db, &state.settings_snapshot(), state.data_dir())
+}
+
+#[tauri::command]
+pub fn run_auto_backup(app: AppHandle, state: State<'_, AppState>) -> Result<AutoBackupStatus> {
+    if !state.settings_snapshot().auto_backup_enabled {
+        return Err(AppError::validation("Enable automatic backups first"));
+    }
+    let result = crate::backups::run(&state, true);
+    let _ = app.emit("backup-status-changed", ());
+    result
 }
 
 #[tauri::command]

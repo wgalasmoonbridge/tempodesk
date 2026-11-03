@@ -233,7 +233,30 @@ npm run smoke -- --release             # PASS (release)
 UI automation and screenshots: see [docs/TEST_REPORT.md](docs/TEST_REPORT.md) and
 [scripts/README.md](scripts/README.md).
 
+## Daily workflow enhancements (authorized 2026-11-03)
+
+- [x] Saved task templates: local CRUD, tracker/tray start, active-timer confirmation, backup round trip (FR-001/003/024).
+- [x] Transactional bulk metadata editing and conflict-aware undo (FR-006/013/027).
+- [x] Opt-in daily local backups, folder selection, retention, status and recoverable errors (FR-024/026).
+- [x] Paginated history with complete filtered counts/totals and live running time (FR-007/008/010).
+- [x] Core regression tests, frontend checks, native build, isolated WebView2 workflows, documentation.
+
+Dependencies: versioned schema migration, typed Rust/TypeScript IPC, existing native dialogs.
+Risks: backups must include templates and read v1 files; retention must leave manual/safety backups alone;
+undo must reject later conflicting changes; pagination and totals must share filters and midnight bounds.
+
+Evidence: 57 Rust tests and 26 frontend tests pass; typecheck, ESLint, formatting, core/shell Clippy,
+native cargo check, frontend production build and isolated native debug build pass. `ui-workflows.mjs`
+passes template CRUD/start/switch, bulk edit/undo, auto backup/retention/restore, and 1,005-entry paging.
+Native tray template menu and directory chooser are wired and build-verified; physical OS clicks
+and macOS runtime remain manual checks. No production profile is used by these checks.
+
 ## Reporting protocol
+
+Installed upgrade evidence (2026-11-03): version 0.3.0 NSIS `/S /UPDATE` completed with exit 0.
+Consistent SQLite snapshots, JSON backup, and the old executable were retained in `.upgrade-backups/`.
+Per-row comparisons before and after production migration verified every existing time entry,
+client, project, tag, tag link, and stored setting. The active timer was preserved.
 
 After each milestone: files changed, commands run, results, acceptance IDs passed, and remaining
 blockers. macOS-specific claims are never made from the Windows host.

@@ -1,5 +1,64 @@
 # TempoDesk Test Report
 
+## Installed upgrade to 0.3.0 — 2026-11-03
+
+The installed Windows app was upgraded from 0.2.0 using the NSIS installer's `/S /UPDATE` mode
+(exit code 0) and reopened from `%LOCALAPPDATA%\TempoDesk\tempodesk.exe`. Its version resource
+reports 0.3.0. The installed executable matches the release byte-for-byte after accounting for
+Tauri's documented-in-source three-byte NSIS bundle marker (`UNK` → `NSS`). Installed SHA-256:
+`b3a352994c3729548045453891439d692dc7a4e76aa88fe10a7f7da3f5ecc4bc`.
+
+Before installation, consistent read-only SQLite snapshots included committed WAL data. The schema
+upgrade was rehearsed against a snapshot, and an app-readable JSON backup and previous executable
+were saved. Every original row was fingerprinted and compared both before launch and after the
+installed app migrated the production database from schema 1 to schema 2.
+
+All existing time-entry rows (including soft-deleted entries and a running timer), clients,
+projects, tags, tag associations, and stored settings were preserved exactly. The active timer's
+ID, original start time, and metadata were unchanged. The app's recovery flow can continue it.
+
+Recovery artifacts are retained locally in the git-ignored `.upgrade-backups/` directory, including
+the final snapshot, JSON backup, and installation-verification record.
+No existing time records were created, edited, or deleted for upgrade verification.
+
+## Workflow enhancements — 2026-11-03
+
+The new workflow changes were verified on Windows using the isolated debug build and a fresh
+`.test-data/run-*` profile. The installed production app remained running in a separate profile.
+
+| Check | Result |
+|---|---|
+| Core Rust tests | 57 passed: 42 unit, 15 integration |
+| Frontend tests | 26 passed across 3 files |
+| Typecheck / ESLint | Pass, no warnings |
+| Core + shell formatting / Clippy | Pass with warnings denied |
+| Native `cargo check` | Pass |
+| Frontend production build | Pass |
+| Native debug app build | Pass (`npm run build:test`) |
+| `node scripts/ui-workflows.mjs` | Pass against actual Tauri/WebView2 |
+
+New regression coverage includes preserving entries through a v1→v2 schema upgrade, v1 backup
+compatibility, template backup round trips, single-running-timer protection, transactional bulk edits,
+metadata undo conflicts and preservation of later time edits, 1,205-entry complete totals with range
+clipping, stable page ordering, daily backup scheduling, retention that preserves other files,
+backwards clock changes, and visible/recoverable backup errors.
+
+The real UI flow created and edited a project/tag/billable template, started it, confirmed switching
+from a running task, applied and undid metadata changes to two sessions, enabled automatic backups,
+checked file contents and retention, restored a template from an automatic backup, and paged a
+1,005-entry history with complete totals. Template deletion was also verified.
+
+Screenshots: `docs/screenshots/templates-history.png`, `bulk-edit.png`, `automatic-backups.png`.
+The native tray template submenu and native folder chooser are implemented and build-verified;
+physical OS click-through is still manual. The 24-hour scheduler was verified with deterministic
+core tests; an elapsed 24-hour desktop soak was not run. macOS runtime remains untested. The installed
+Windows release upgrade was subsequently verified as recorded above.
+
+The frontend build/test tool required an approved run outside the filesystem sandbox to resolve
+its configuration; PowerShell execution policy required invoking `npm.cmd` on this host.
+
+---
+
 **Date:** 2026-11-02
 
 **Host:** Windows 11 x64 (10.0.26200.9711)

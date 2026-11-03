@@ -7,7 +7,10 @@ use rusqlite::Connection;
 use crate::error::{AppError, Result};
 use crate::timeutil;
 
-const MIGRATIONS: &[(i64, &str)] = &[(1, include_str!("../../migrations/0001_init.sql"))];
+const MIGRATIONS: &[(i64, &str)] = &[
+    (1, include_str!("../../migrations/0001_init.sql")),
+    (2, include_str!("../../migrations/0002_workflows.sql")),
+];
 
 /// Open the app database, creating directories/privacy-friendly file if needed.
 pub fn open_at(path: &Path) -> Result<Connection> {
@@ -91,7 +94,7 @@ mod tests {
         let version: i64 = conn
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(version, 1);
+        assert_eq!(version, 2);
         let fk: i64 = conn
             .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
             .unwrap();
@@ -103,6 +106,26 @@ mod tests {
             [],
         );
         assert!(err.is_err());
+    }
+
+    #[test]
+    fn upgrades_version_one_without_changing_existing_entries() {
+        let conn = Connection::open_in_memory().unwrap();
+        configure(&conn).unwrap();
+        conn.execute_batch(MIGRATIONS[0].1).unwrap();
+        conn.execute_batch("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at_utc INTEGER NOT NULL); INSERT INTO schema_migrations VALUES (1, 1000); PRAGMA user_version = 1;").unwrap();
+        conn.execute("INSERT INTO time_entries (id, description, start_at_utc, end_at_utc, duration_seconds, is_billable, source, created_at_utc, updated_at_utc) VALUES ('preserved', 'Existing work', 1000, 61000, 60, 1, 'manual', 1000, 1000)", []).unwrap();
+        migrate(&conn).unwrap();
+        migrate(&conn).unwrap(); // Restart does not reapply the migration.
+        let description: String = conn
+            .query_row(
+                "SELECT description FROM time_entries WHERE id = 'preserved'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(description, "Existing work");
+        assert_eq!(integrity_check(&conn).unwrap(), "ok");
     }
 
     #[test]

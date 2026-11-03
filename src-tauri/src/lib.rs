@@ -1,4 +1,5 @@
 pub mod ai;
+pub mod backups;
 pub mod commands;
 pub mod platform;
 pub mod secrets;
@@ -70,6 +71,7 @@ pub fn run() {
                 log::warn!("{warning}");
             }
             platform::idle::spawn(handle.clone());
+            backups::spawn(handle.clone());
             Ok(())
         })
         .on_menu_event(platform::menu::handle)
@@ -95,6 +97,15 @@ pub fn run() {
             commands::resolve_recovery,
             commands::get_recovery_info,
             commands::list_entries,
+            commands::list_entry_page,
+            commands::bulk_edit_entries,
+            commands::undo_bulk_edit,
+            commands::list_templates,
+            commands::save_template,
+            commands::delete_template,
+            commands::start_template,
+            commands::get_auto_backup_status,
+            commands::run_auto_backup,
             commands::create_manual_entry,
             commands::duplicate_entry,
             commands::update_entry,

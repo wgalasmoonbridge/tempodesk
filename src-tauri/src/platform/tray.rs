@@ -30,12 +30,13 @@ fn format_hms(total_seconds: i64) -> String {
 
 fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let state = app.state::<AppState>();
-    let (active, recent) = match state.db() {
+    let (active, recent, templates) = match state.db() {
         Ok(db) => (
             repo_entries::get_active(&db).ok().flatten(),
             repo_entries::recent_completed(&db, 5).unwrap_or_default(),
+            crate::domain::templates::list(&db).unwrap_or_default(),
         ),
-        Err(_) => (None, Vec::new()),
+        Err(_) => (None, Vec::new(), Vec::new()),
     };
 
     let now = crate::domain::timeutil::now_ms();
@@ -92,6 +93,30 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         }
     }
 
+    let templates_sub = SubmenuBuilder::new(app, "Saved task templates").build()?;
+    if templates.is_empty() || active.is_some() {
+        templates_sub.append(&MenuItem::with_id(
+            app,
+            "templates_hint",
+            if active.is_some() {
+                "Stop the current timer to start a template"
+            } else {
+                "Save templates in the tracker"
+            },
+            false,
+            None::<&str>,
+        )?)?;
+    }
+    for template in templates {
+        templates_sub.append(
+            &MenuItemBuilder::with_id(
+                format!("template:{}", template.id),
+                short_label(&template.name, 50),
+            )
+            .enabled(active.is_none())
+            .build(app)?,
+        )?;
+    }
     let open = MenuItem::with_id(app, "open", "Open TempoDesk", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(app)?;
@@ -102,6 +127,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &status,
             &start_stop,
             &recent_sub,
+            &templates_sub,
             &sep,
             &open,
             &settings,
@@ -226,6 +252,31 @@ fn handle_menu(app: &AppHandle, id: &str) {
                     let _ = app.emit(
                         "app-error",
                         serde_json::json!({ "code": err.code(), "message": err.to_string() }),
+                    );
+                }
+            }
+        }
+        other if other.starts_with("template:") => {
+            let result: crate::error::Result<()> = (|| {
+                let mut db = state.db()?;
+                let input = crate::domain::templates::start_input(
+                    &db,
+                    other.trim_start_matches("template:"),
+                )?;
+                timer::start(&mut db, &input, crate::domain::timeutil::now_ms())?;
+                Ok(())
+            })();
+            match result {
+                Ok(()) => {
+                    state.clear_recovery();
+                    let _ = app.emit("timer-state-changed", ());
+                    refresh(app);
+                }
+                Err(error) => {
+                    crate::platform::window::show_main(app);
+                    let _ = app.emit(
+                        "app-error",
+                        serde_json::json!({"message": error.to_string()}),
                     );
                 }
             }

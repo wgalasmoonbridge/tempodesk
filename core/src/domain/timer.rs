@@ -11,14 +11,14 @@ use crate::storage::{repo_entries, repo_projects};
 
 const MAX_TIMER_EDIT_SECONDS: i64 = 7 * 24 * 60 * 60;
 
-struct EntryMeta {
-    description: String,
-    project_id: Option<String>,
-    is_billable: bool,
-    tag_ids: Vec<String>,
+pub(crate) struct EntryMeta {
+    pub(crate) description: String,
+    pub(crate) project_id: Option<String>,
+    pub(crate) is_billable: bool,
+    pub(crate) tag_ids: Vec<String>,
 }
 
-fn resolve_meta(
+pub(crate) fn resolve_meta(
     conn: &Connection,
     description: Option<&str>,
     project_id: Option<&str>,

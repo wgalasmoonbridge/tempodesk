@@ -1,5 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  AutoBackupStatus,
+  BulkEditPatch,
+  BulkEditResult,
+  EntryPage,
+  TaskTemplate,
+  TemplateInput,
   AiStatus,
   AiTestResult,
   AppSettings,
@@ -57,6 +63,15 @@ export const api = {
 
   listEntries: (filter: EntryFilter) =>
     call<TimeEntry[]>("list_entries", { filter }),
+  listEntryPage: (filter: EntryFilter) => call<EntryPage>("list_entry_page", { filter }),
+  bulkEditEntries: (ids: string[], patch: BulkEditPatch) => call<BulkEditResult>("bulk_edit_entries", { ids, patch }),
+  undoBulkEdit: (token: string) => call<number>("undo_bulk_edit", { token }),
+  listTemplates: () => call<TaskTemplate[]>("list_templates"),
+  saveTemplate: (input: TemplateInput) => call<TaskTemplate>("save_template", { input }),
+  deleteTemplate: (id: string) => call<void>("delete_template", { id }),
+  startTemplate: (id: string, switchActive = false) => call<TimeEntry>("start_template", { id, switchActive }),
+  getAutoBackupStatus: () => call<AutoBackupStatus>("get_auto_backup_status"),
+  runAutoBackup: () => call<AutoBackupStatus>("run_auto_backup"),
   createManualEntry: (input: ManualEntryInput) =>
     call<CreatedEntry>("create_manual_entry", { input }),
   duplicateEntry: (entryId: string) =>

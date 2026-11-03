@@ -378,6 +378,9 @@ pub struct IdleReview {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
+    pub auto_backup_enabled: bool,
+    pub auto_backup_directory: String,
+    pub auto_backup_retention: u32,
     pub theme: String,
     pub start_of_week: String,
     pub timezone: String,
@@ -403,6 +406,9 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
+            auto_backup_enabled: false,
+            auto_backup_directory: String::new(),
+            auto_backup_retention: 14,
             theme: "system".into(),
             start_of_week: "monday".into(),
             timezone: "system".into(),
@@ -430,6 +436,9 @@ impl Default for AppSettings {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsPatch {
+    pub auto_backup_enabled: Option<bool>,
+    pub auto_backup_directory: Option<String>,
+    pub auto_backup_retention: Option<u32>,
     #[serde(default)]
     pub theme: Option<String>,
     #[serde(default)]
@@ -553,6 +562,8 @@ pub struct ShortcutStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BackupCounts {
+    #[serde(default)]
+    pub templates: usize,
     pub clients: usize,
     pub projects: usize,
     pub tags: usize,
@@ -592,6 +603,8 @@ pub struct BackupEntryTag {
 /// Versioned, human-inspectable backup document. Timestamps stay UTC milliseconds.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupDocument {
+    #[serde(default)]
+    pub templates: Vec<TaskTemplate>,
     pub format: String,
     pub version: u32,
     pub created_at_utc: i64,
@@ -633,4 +646,67 @@ pub struct BackupEntry {
 }
 
 pub const BACKUP_FORMAT: &str = "tempodesk-backup";
-pub const BACKUP_VERSION: u32 = 1;
+pub const BACKUP_VERSION: u32 = 2;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskTemplate {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub project_id: Option<String>,
+    pub tag_ids: Vec<String>,
+    pub is_billable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TemplateInput {
+    pub id: Option<String>,
+    pub name: String,
+    pub description: String,
+    pub project_id: Option<String>,
+    #[serde(default)]
+    pub tag_ids: Vec<String>,
+    #[serde(default)]
+    pub is_billable: bool,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkEditPatch {
+    pub description: Option<String>,
+    #[serde(default)]
+    pub set_project: bool,
+    pub project_id: Option<String>,
+    pub is_billable: Option<bool>,
+    pub tag_ids: Option<Vec<String>>,
+    pub tag_mode: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkEditResult {
+    pub updated_count: usize,
+    pub undo_token: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EntryPage {
+    pub entries: Vec<TimeEntry>,
+    pub total_count: i64,
+    pub total_seconds: i64,
+    pub server_now_utc: i64,
+    pub running_start_at_utc: Option<i64>,
+    pub range_end_utc: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoBackupStatus {
+    pub directory: String,
+    pub last_backup_at_utc: Option<i64>,
+    pub last_backup_path: Option<String>,
+    pub error: Option<String>,
+}

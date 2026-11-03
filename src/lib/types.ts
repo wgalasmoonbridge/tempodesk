@@ -249,6 +249,9 @@ export interface ExportResult {
 }
 
 export interface AppSettings {
+  autoBackupEnabled: boolean;
+  autoBackupDirectory: string;
+  autoBackupRetention: number;
   theme: ThemeSetting;
   startOfWeek: StartOfWeek;
   timezone: string;
@@ -272,6 +275,9 @@ export interface AppSettings {
 }
 
 export interface SettingsPatch {
+  autoBackupEnabled?: boolean;
+  autoBackupDirectory?: string;
+  autoBackupRetention?: number;
   theme?: ThemeSetting;
   startOfWeek?: StartOfWeek;
   timezone?: string;
@@ -332,6 +338,7 @@ export interface IdleReview {
 }
 
 export interface BackupCounts {
+  templates: number;
   clients: number;
   projects: number;
   tags: number;
@@ -385,6 +392,47 @@ export interface SummaryResult {
 }
 
 export type IdleAction = "keep" | "exclude" | "stop_at_idle";
+
+export interface TaskTemplate {
+  id: string;
+  name: string;
+  description: string;
+  projectId: string | null;
+  tagIds: string[];
+  isBillable: boolean;
+}
+
+export type TemplateInput = Omit<TaskTemplate, "id"> & { id: string | null };
+
+export interface BulkEditPatch {
+  description?: string;
+  setProject?: boolean;
+  projectId?: string | null;
+  isBillable?: boolean;
+  tagIds?: string[];
+  tagMode?: "add" | "replace" | "remove";
+}
+
+export interface BulkEditResult {
+  updatedCount: number;
+  undoToken: string;
+}
+
+export interface EntryPage {
+  entries: TimeEntry[];
+  totalCount: number;
+  totalSeconds: number;
+  serverNowUtc: number;
+  runningStartAtUtc: number | null;
+  rangeEndUtc: number | null;
+}
+
+export interface AutoBackupStatus {
+  directory: string;
+  lastBackupAtUtc: number | null;
+  lastBackupPath: string | null;
+  error: string | null;
+}
 export type RecoveryAction = "continue" | "stop_at_last_seen" | "stop_now";
 
 export interface ApiErrorShape {

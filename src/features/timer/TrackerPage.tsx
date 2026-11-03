@@ -4,6 +4,7 @@ import {
   CalendarClock,
   Inbox,
   ListChecks,
+  Pencil,
   Search,
   Sparkles,
   Trash2,
@@ -21,6 +22,7 @@ import { useNavigation } from "../../app/navigation";
 import { api, normalizeError } from "../../lib/ipc";
 import type {
   EntryFilter,
+  EntryPage,
   StartTimerInput,
   TimeEntry,
 } from "../../lib/types";
@@ -41,6 +43,9 @@ import { IdleReviewBanner } from "./IdleReviewBanner";
 import { EntryDialog } from "../entries/EntryDialog";
 import { SummaryPanel } from "../summary/SummaryPanel";
 import { dayLabel } from "../../lib/format";
+import { BulkEditDialog } from "../entries/BulkEditDialog";
+import { TemplatePanel } from "./TemplatePanel";
+import { historyTotal } from "./historyTotal";
 
 type Preset = "last7" | "today" | "week" | "all" | "custom";
 
@@ -82,6 +87,11 @@ export function TrackerPage() {
   const [billable, setBillable] = useState<"" | "yes" | "no">("");
 
   const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [pageSummary, setPageSummary] = useState<EntryPage | null>(null);
+  const filterKey = JSON.stringify([preset, from, to, projectId, clientId, tagId, billable, search, timezone]);
+  const [pagination, setPagination] = useState({ key: "", index: 0 });
+  const pageIndex = pagination.key === filterKey ? pagination.index : 0;
+  const pageSize = 100;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
@@ -93,6 +103,7 @@ export function TrackerPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [resumeTarget, setResumeTarget] = useState<TimeEntry | null>(null);
@@ -142,14 +153,21 @@ export function TrackerPage() {
       tagIds: tagId ? [tagId] : null,
       billable: billable === "" ? null : billable === "yes",
       search: search.trim() || null,
-      limit: 1000,
+      limit: pageSize,
+      offset: pageIndex * pageSize,
       sort: "start_desc",
       includeRunning: true,
     };
     api
-      .listEntries(filter)
+      .listEntryPage(filter)
       .then((result) => {
-        if (!cancelled) setEntries(result);
+        if (!cancelled) {
+          if (pageIndex > 0 && result.totalCount <= pageIndex * pageSize) {
+            setPagination({ key: filterKey, index: Math.max(0, Math.ceil(result.totalCount / pageSize) - 1) });
+          }
+          setEntries(result.entries);
+          setPageSummary(result);
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(normalizeError(err).message);
@@ -171,6 +189,8 @@ export function TrackerPage() {
     search,
     timezone,
     dataVersion,
+    pageIndex,
+    filterKey,
   ]);
 
   const groups = useMemo<DayGroup[]>(() => {
@@ -207,7 +227,7 @@ export function TrackerPage() {
     return list;
   }, [entries, now, timezone, preset, from, to]);
 
-  const rangeTotal = groups.reduce((sum, group) => sum + group.total, 0);
+  const rangeTotal = historyTotal(pageSummary, now);
   const selectedEntries = useMemo(
     () => entries.filter((entry) => selectedIds.has(entry.id)),
     [entries, selectedIds],
@@ -532,6 +552,7 @@ export function TrackerPage() {
       />
 
       <IdleReviewBanner />
+      <TemplatePanel />
 
       <section aria-labelledby="history-heading">
         <div
@@ -545,7 +566,7 @@ export function TrackerPage() {
           <h2 id="history-heading" style={{ fontSize: 15 }}>
             History
           </h2>
-          <span className="badge">{entries.length} sessions</span>
+          <span className="badge">{loading ? "…" : pageSummary?.totalCount ?? 0} sessions</span>
           <div
             style={{
               marginLeft: "auto",
@@ -560,14 +581,14 @@ export function TrackerPage() {
               variant="ghost"
               icon={<ListChecks size={14} aria-hidden="true" />}
               onClick={() => (selectionMode ? exitSelection() : setSelectionMode(true))}
-              disabled={entries.length === 0}
+              disabled={entries.length === 0 || loading}
             >
               {selectionMode ? "Exit selection" : "Select"}
             </Button>
             <span style={{ color: "var(--muted)", fontSize: 12 }}>
               Range total{" "}
               <strong style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
-                {formatDuration(rangeTotal, "hm")}
+                {loading ? "…" : formatDuration(rangeTotal, "hm")}
               </strong>
             </span>
           </div>
@@ -718,10 +739,18 @@ export function TrackerPage() {
             <span className="spacer" />
             <Button
               size="sm"
+              icon={<Pencil size={13} aria-hidden="true" />}
+              onClick={() => setBulkEditOpen(true)}
+              disabled={selectedIds.size === 0 || loading}
+            >
+              Edit selected
+            </Button>
+            <Button
+              size="sm"
               variant="danger"
               icon={<Trash2 size={13} aria-hidden="true" />}
               onClick={() => setBulkDeleteOpen(true)}
-              disabled={selectedIds.size === 0}
+              disabled={selectedIds.size === 0 || loading}
             >
               Delete selected
             </Button>
@@ -775,7 +804,7 @@ export function TrackerPage() {
                 <span className="date">
                   {dayLabel(group.date, today) ? formatDateLong(group.date) : ""}
                 </span>
-                <span className="total">{formatDuration(group.total, "hm")}</span>
+                <span className="total">{formatDuration(group.total, "hm")}{(pageSummary?.totalCount ?? 0) > entries.length ? " shown" : ""}</span>
               </div>
               {group.entries.map((segment) => (
                 <EntryRow
@@ -802,7 +831,15 @@ export function TrackerPage() {
             </div>
           ))
         )}
+        {(pageSummary?.totalCount ?? 0) > 0 && <nav className="history-pagination" aria-label="History pages">
+          <span className="field-hint">Showing {pageIndex * pageSize + 1}–{pageIndex * pageSize + entries.length} of {pageSummary?.totalCount} sessions. Range total includes all matches.</span>
+          <span className="spacer" />
+          <Button size="sm" disabled={loading || pageIndex === 0} onClick={() => { exitSelection(); setPagination({ key: filterKey, index: pageIndex - 1 }); }}>Previous page</Button>
+          <Button size="sm" disabled={loading || (pageIndex + 1) * pageSize >= (pageSummary?.totalCount ?? 0)} onClick={() => { exitSelection(); setPagination({ key: filterKey, index: pageIndex + 1 }); }}>Next page</Button>
+        </nav>}
       </section>
+
+      {bulkEditOpen && <BulkEditDialog ids={[...selectedIds]} onClose={() => setBulkEditOpen(false)} onSaved={() => { setBulkEditOpen(false); exitSelection(); }} />}
 
       <EntryDialog
         open={Boolean(editEntry)}

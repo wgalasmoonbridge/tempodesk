@@ -11,6 +11,9 @@ Tauri commands (src-tauri/src/commands.rs)
    ▼
 tempodesk-core (core/)  ← no Tauri dependency, unit/integration tested
    ├── domain::timer        start/stop/switch/resume/update/delete/recovery
+   ├── domain::templates    saved task metadata, validation, start inputs
+   ├── domain::bulk         transactional metadata edits, conflict-aware undo snapshots
+   ├── domain::auto_backup  snapshot schedule, status, safe retention
    ├── domain::idle         keep/exclude/stop-at-idle review resolution
    ├── domain::reports      timesheet + report aggregation + CSV
    ├── domain::summary      local summary, AI prompt, Gemini response parsing
@@ -30,7 +33,7 @@ Platform integrations are isolated in `src-tauri/src/platform/`:
 
 | Module | Responsibility |
 |---|---|
-| `tray.rs` | Native tray/menu-bar icon, live tooltip, start/stop, recent 5 resume, open/settings/quit |
+| `tray.rs` | Native tray/menu-bar icon, live tooltip, start/stop, recent 5 resume, saved tasks, open/settings/quit |
 | `menu.rs` | Native app menu (File/Edit/Window/Help + macOS app menu) and menu event routing |
 | `shortcuts.rs` | Global shortcut registration, collision/error reporting, toggle handler |
 | `window.rs` | Show/focus, close-to-tray, quit policy, clean-exit marker |
@@ -38,6 +41,25 @@ Platform integrations are isolated in `src-tauri/src/platform/`:
 | `mod.rs` | Autostart synchronization |
 
 ## 2. Database
+
+Migration `0002_workflows.sql` adds `task_templates` and `bulk_edit_undo` without modifying existing
+entries. Templates store validated metadata, with project foreign keys and a JSON tag-ID list.
+Bulk-edit undo records hold server-generated before/after metadata; an undo checks all entries
+against the after values before writing any changes, and leaves independently edited times intact.
+Old undo records expire during subsequent bulk edits after seven days; restore clears undo records.
+
+History pages and full-range aggregate SQL share one set of predicates. The aggregate clips UTC
+intervals to timezone-resolved local date boundaries without applying LIMIT/OFFSET. Equal timestamps
+are ordered by entry ID after start/creation time to keep pagination deterministic. The renderer
+advances matching running time from the aggregate's timestamp and caps it at the range end.
+
+`src-tauri/src/backups.rs` checks scheduling every 60 seconds on a background thread, including while
+the window is hidden. Snapshot construction and retention run under the database mutex. Successful
+timestamps/paths and actionable errors live in runtime state. Retention only considers regular files
+whose names match the app's timestamp-and-UUID automatic-backup convention; manual backups, safety
+backups, symlinks, and directories are excluded. A newly written snapshot survives backwards clock
+changes. Backup v2 carries templates; v1 reads default to no templates. Scheduling and folder paths
+are excluded from portable backups, and restore turns scheduling off for this device.
 
 Migration `core/migrations/0001_init.sql` creates:
 
