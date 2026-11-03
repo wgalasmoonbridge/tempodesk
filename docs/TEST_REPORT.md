@@ -382,3 +382,7 @@ Reproduce and review limitations in [sharing-poc/README.md](../sharing-poc/READM
   packaged/installed binary comparison, and every pre-existing persisted-record comparison passed
   before install and after launch. The active timer was preserved; sharing was not started.
   Receipt: ignored `.upgrade-backups/installed-0.4.0-20261104-031659/installation-verification.json`.
+- **PASS** — GitHub's Windows and macOS jobs pass frontend and reporting/sharing verification,
+  build and upload all four v0.4.0 release assets. Each downloaded file matches its published
+  SHA-256 digest. See [CHANGELOG.md](../CHANGELOG.md) for MSVC/macOS hashes and the separate
+  locally installed GNU artifact. Release source commit: `2aac50a461d2b23660c0e6232a0eca0ae02ea259`.

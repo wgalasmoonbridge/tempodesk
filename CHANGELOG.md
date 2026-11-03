@@ -34,6 +34,22 @@
 - Local GNU installer SHA-256:
   `91b7d540d520049714fe47f04e608bd97e941ed7a249a67411005f7d18236364`.
 
+### GitHub release artifacts
+
+All four downloaded assets match GitHub's published SHA-256 digests:
+
+- Windows MSVC NSIS `TempoDesk_0.4.0_x64-setup.exe`:
+  `ec5fe97132cca093ed5ede9b3b3b57471ef957fd2f2e0e2725a017c981423f3a`
+- Windows MSVC MSI `TempoDesk_0.4.0_x64_en-US.msi`:
+  `a536e8be06a9a5e9a7f6aabdc7c31e15319dcced311da836db5b05be6cfda085`
+- macOS Intel `TempoDesk_0.4.0_x64.dmg`:
+  `691afcbb580a7bb2f8adff2cf69ac332eeb1ffc218835052f06fafc4ea4c89c5`
+- macOS Intel `TempoDesk_x64.app.tar.gz`:
+  `e9ebd85213820b6bf98b16cb60720257be013c638420334f41ba40a39c8d185a`
+
+The installed Windows copy uses the locally tested GNU bundle listed above. GitHub's Windows
+artifacts use MSVC. macOS build/test checks pass; runtime still needs Mac hardware.
+
 ## 0.3.0 — 2026-11-03
 
 ### Added

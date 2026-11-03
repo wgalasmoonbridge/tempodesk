@@ -278,7 +278,7 @@ Physical sleep/wake, macOS runtime, and production tunnel lifecycle remain unver
 - [x] Full check pipeline: 57 core Rust, 6 sharing Rust, 29 Vitest and 4 viewer tests; format/Clippy,
   typecheck, ESLint and native debug build. Isolated native/public HTTPS tests pass.
 - [x] Windows release installer applied with per-row preservation verification.
-- [ ] Source/release published to GitHub and website downloads updated.
+- [x] Source/release published to GitHub; website download targets updated to 0.4.0.
 
 No production records were used by sharing tests. Physical sleep/wake, macOS runtime, stable
 hostname hosting, and email/password gates remain outside the verified beta. See
