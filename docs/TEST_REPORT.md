@@ -1,5 +1,14 @@
 # TempoDesk Test Report
 
+## GitHub release 0.3.0 — 2026-11-03
+
+[Release workflow](https://github.com/wgalasmoonbridge/tempodesk/actions/runs/41663271527)
+built and published Windows x64 NSIS/MSI installers and macOS Intel DMG/application archives to
+the [v0.3.0 release](https://github.com/wgalasmoonbridge/tempodesk/releases/tag/v0.3.0). Frontend
+typecheck, lint, and all 26 tests passed on both runners. Asset names, sizes, and SHA-256 digests
+were verified through GitHub's release API; checksums are recorded in CHANGELOG.md.
+macOS runtime remains unverified. Local databases and upgrade backups were excluded from the push.
+
 ## Installed upgrade to 0.3.0 — 2026-11-03
 
 The installed Windows app was upgraded from 0.2.0 using the NSIS installer's `/S /UPDATE` mode

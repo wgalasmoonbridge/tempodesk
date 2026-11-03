@@ -25,6 +25,19 @@
   timer were unchanged after migration and launch. SQLite/JSON backups and the previous executable
   were retained locally before the upgrade.
 
+### GitHub release artifacts
+
+- Windows x64 bundles built and published by GitHub Actions:
+  - `TempoDesk_0.3.0_x64-setup.exe`
+    - SHA-256: `bf005abb1416542e8339693789dee8c3fb2e5fffab9a6f671b2d392129476320`
+  - `TempoDesk_0.3.0_x64_en-US.msi`
+    - SHA-256: `97d0e8ed0f5e0a2bd7f877ed6f95067427ae3af3ec854a7d881553f9353107c4`
+- macOS Intel bundles built and published by GitHub Actions (runtime unverified):
+  - `TempoDesk_0.3.0_x64.dmg`
+    - SHA-256: `842e259f7b8994b9352e83e261bc6d859f756f22bb383ec0ad4a35ebf9a148bc`
+  - `TempoDesk_x64.app.tar.gz`
+    - SHA-256: `0e436d76b72be9dd5b249a3f219740ee2256fad7389b686d516e078b227299b8`
+
 ## 0.2.0 — 2026-11-02
 
 ### Added
