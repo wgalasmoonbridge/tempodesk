@@ -133,6 +133,34 @@ export interface ReportFilter {
   search?: string | null;
 }
 
+export interface ShareInput {
+  title: string;
+  filter: ReportFilter;
+  fields: { descriptions: boolean; billable: boolean };
+  ttlSeconds: number;
+  initialView: "report" | "timesheet";
+  consent: boolean;
+}
+
+export interface SharingStatus {
+  phase: "stopped" | "starting" | "active" | "reconnecting" | "expired" | "error";
+  message: string;
+  url: string | null;
+  expiresAtUtc: number | null;
+  scope: ShareInput | null;
+}
+
+export interface SharedReportPreview {
+  title: string;
+  dateFrom: string;
+  dateTo: string;
+  timezone: string;
+  totalSeconds: number;
+  entryCount: number;
+  billableSeconds?: number;
+  entries: { project: string; description?: string; seconds: number; running: boolean }[];
+}
+
 export interface RecoveryInfo {
   entry: TimeEntry;
   lastSeenAtUtc: number;

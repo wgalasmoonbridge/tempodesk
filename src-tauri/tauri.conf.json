@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "TempoDesk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "identifier": "com.tempodesk.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -49,6 +49,6 @@
       }
     },
     "shortDescription": "Private, local-first desktop time tracking",
-    "longDescription": "TempoDesk is a local-first time tracker with projects, clients, tags, timesheets, reports, and native desktop integration. No account, no cloud, no telemetry."
+    "longDescription": "TempoDesk is a local-first time tracker with projects, clients, tags, timesheets, reports, optional live report sharing, and native desktop integration. No account or telemetry. Sharing and AI summaries connect only when you request them."
   }
 }

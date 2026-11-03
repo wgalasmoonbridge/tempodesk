@@ -32,8 +32,8 @@ linker warning (`.rsrc merge failure: multiple non-default manifests`) is benign
   uses a display-only monotonic ticker.
 - **Native integration:** native titlebar/menu, tray/menu bar, global shortcuts, OS theme, native
   dialogs, notifications with fallback, autostart, single instance, close-to-tray.
-- **Privacy:** no telemetry or background network; the only network feature is an explicit,
-  user-triggered AI summary. Idle detection is off by default; no surveillance.
+- **Privacy:** no telemetry or network by default. AI summaries run on explicit generation; live
+  sharing connects only while an owner-created share is active. Idle detection is off by default.
 
 ## Milestones
 
@@ -251,7 +251,40 @@ passes template CRUD/start/switch, bulk edit/undo, auto backup/retention/restore
 Native tray template menu and directory chooser are wired and build-verified; physical OS clicks
 and macOS runtime remain manual checks. No production profile is used by these checks.
 
-## Reporting protocol
+## Live report sharing proof of concept (authorized 2026-11-04)
+
+- [x] Standalone prototype using an in-memory demo database and existing Rust report calculations.
+- [x] Read-only browser report/timesheet, fixed server-side scope, field minimization (FR-014/015/026).
+- [x] Random capability links, expiry, revocation, rotation, no-store responses, safe text rendering.
+- [x] Loopback-only HTTP server and temporary Cloudflare tunnel; no installed-app/database access.
+- [x] Verify live changes, scope tampering, expired/revoked links, source interruption/reconnect,
+  and unchanged records after read-only requests; document limitations and production requirements.
+
+This is a separate experimental harness, not an installed-app feature or a production sharing service.
+Evidence: 7 Rust tests, 3 browser-script tests, formatting, Clippy, typecheck and ESLint pass.
+Public HTTPS checks and an isolated headless Edge run pass, including both report views,
+source recovery, revocation clearing, and the 390px layout. The launcher waits up to three minutes
+for temporary-hostname readiness; initial DNS delays were observed on this host. See
+[sharing-poc/README.md](sharing-poc/README.md) and [docs/TEST_REPORT.md](docs/TEST_REPORT.md).
+Physical sleep/wake, macOS runtime, and production tunnel lifecycle remain unverified.
+
+## Desktop live report sharing (0.4.0, authorized 2026-11-04)
+
+- [x] Reports/Timesheet share actions, frozen scope/field preview and explicit Create public link.
+- [x] One active grant with random token, 15-minute to 24-hour UI expiry, copy/replace/stop controls.
+- [x] Separate read-only SQLite source and loopback HTTP; no schema or existing-record changes.
+- [x] Verified helper setup, temporary tunnel readiness, live edits/timers, request/concurrency caps.
+- [x] Global sharing banner, startup cancellation, stop/quit/restore cleanup, reconnect status.
+- [x] Full check pipeline: 57 core Rust, 6 sharing Rust, 29 Vitest and 4 viewer tests; format/Clippy,
+  typecheck, ESLint and native debug build. Isolated native/public HTTPS tests pass.
+- [x] Windows release installer applied with per-row preservation verification.
+- [ ] Source/release published to GitHub and website downloads updated.
+
+No production records were used by sharing tests. Physical sleep/wake, macOS runtime, stable
+hostname hosting, and email/password gates remain outside the verified beta. See
+[sharing/README.md](sharing/README.md).
+
+## Reporting protocol (release evidence)
 
 Installed upgrade evidence (2026-11-03): version 0.3.0 NSIS `/S /UPDATE` completed with exit 0.
 Consistent SQLite snapshots, JSON backup, and the old executable were retained in `.upgrade-backups/`.

@@ -1,6 +1,6 @@
 [package]
 name = "tempodesk"
-version = "0.3.0"
+version = "0.4.0"
 description = "TempoDesk — local-first desktop time tracker"
 authors = ["TempoDesk"]
 edition = "2021"
@@ -24,6 +24,7 @@ thiserror = "2"
 log = "0.4"
 env_logger = "0.11"
 tempodesk-core = { path = "../core" }
+tempodesk-sharing = { path = "../sharing" }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"

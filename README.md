@@ -3,8 +3,8 @@
 **Private, local-first desktop time tracking.** TempoDesk is a Tauri 2 desktop app for Windows and
 macOS with one running timer, manual entries, projects/clients/tags, a weekly timesheet, a visual
 calendar, reports, CSV export, native tray/menu-bar controls, global shortcuts, opt-in idle review, and local
-backup/restore. No account, no cloud, no telemetry. The only optional network feature is a
-user-triggered AI summary using your own Gemini API key.
+backup/restore. No account or telemetry. Optional network features are user-triggered AI summaries
+using your own Gemini API key and live report links that you explicitly create and control.
 
 ![TempoDesk time tracker](docs/screenshots/tracker-final.png)
 
@@ -16,7 +16,7 @@ build succeeds in GitHub Actions, but macOS runtime behavior is **not tested** o
 The first P1 feature, a visual day/week calendar timeline, is implemented. Pomodoro,
 foreground-app auto-tracking, PDF/XLSX, rates, and sync have not been started.
 
-- 57 Rust tests (42 unit + 15 integration), 26 TypeScript/Vitest tests.
+- 57 core Rust tests, 6 sharing Rust tests, 29 TypeScript/Vitest tests and 4 shared-viewer tests.
 - Real UI flows verified through WebView2 DevTools automation (create project, timer, manual
   entries, edit/delete/undo, overnight validation, tags/clients/projects, timesheet cell editor,
   calendar drag-to-create/edit and day/week switching, reports filters, backup/restore, CSV totals,
@@ -70,7 +70,7 @@ npm run tauri:build        # production build + installer for the host
 The installer for this verified Windows build is at:
 
 ```text
-src-tauri/target/release/bundle/nsis/TempoDesk_0.3.0_x64-setup.exe
+src-tauri/target/release/bundle/nsis/TempoDesk_0.4.0_x64-setup.exe
 ```
 
 It installs per-user (no admin prompt) to `%LOCALAPPDATA%\TempoDesk`. The installer is unsigned;
@@ -102,7 +102,7 @@ TempoDesk deliberately separates production, development, and test profiles:
 
 ## Five-minute demonstration (M1 checkpoint)
 
-1. **Launch** `TempoDesk_0.3.0_x64-setup.exe` (or `npm run tauri:dev`). The first-run onboarding
+1. **Launch** `TempoDesk_0.4.0_x64-setup.exe` (or `npm run tauri:dev`). The first-run onboarding
    appears (three steps, skippable) and the local SQLite database is created immediately.
 2. **Create a project**: *Projects → New project*, name it, choose a color, optionally a client,
    save. It appears in the start-session project selector.
@@ -228,10 +228,12 @@ Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-chan
 - Development database: sibling `com.tempodesk.desktop.dev`; test databases live under
   `.test-data/` in this repository and are git-ignored.
 - Pre-restore safety backups: `<app-data>/backups/`.
-- No network calls by default and no background network activity. The only network feature is
-  optional AI summaries: when enabled and explicitly triggered, aggregated timesheet data for the
-  selected range (and task descriptions if enabled) is sent to Google Gemini using your API key.
+- No network calls by default. Optional AI summaries send aggregated timesheet data for the
+  selected range (and task descriptions if enabled) to Google Gemini using your API key.
   Local summaries never leave the device.
+- Optional live report sharing uses a read-only connection and an owner-approved projection through
+  Cloudflare. Requests continue while the share is active and end on stop, expiry, quit, or restore.
+  Links are temporary, scoped to fixed filters, and can be replaced. See [sharing/README.md](sharing/README.md).
 - No analytics, accounts, cloud sync, screenshots/keystrokes/URLs/window titles. Idle detection is
   opt-in, local-only, and only reads the OS aggregate idle duration.
 - Backups are plain-text JSON and can contain sensitive work/client names — store them privately.

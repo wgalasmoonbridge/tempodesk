@@ -8,6 +8,7 @@ import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 const tables = {
   clients: ["id"], projects: ["id"], tags: ["id"],
   time_entries: ["id"], entry_tags: ["entry_id", "tag_id"], app_settings: ["key"],
+  task_templates: ["id"], bulk_edit_undo: ["id"], idle_review_events: ["id"],
 };
 
 function inspect(path) {
@@ -18,6 +19,7 @@ function inspect(path) {
     if (integrity !== "ok") throw new Error("Database integrity check failed");
     const result = { schema: db.prepare("PRAGMA user_version").get().user_version, tables: {} };
     for (const [table, keys] of Object.entries(tables)) {
+      if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table)) continue;
       const rows = db.prepare(`SELECT * FROM ${table} ORDER BY ${keys.join(", ")}`).all();
       result.tables[table] = Object.fromEntries(rows.map((row) => [
         JSON.stringify(keys.map((key) => row[key])),
@@ -33,6 +35,7 @@ function inspect(path) {
 
 function compare(expected, actual) {
   for (const [table, rows] of Object.entries(expected.tables)) {
+    if (!actual.tables[table]) throw new Error(`Existing ${table} table is missing`);
     for (const [key, hash] of Object.entries(rows)) {
       if (actual.tables[table][key] !== hash) throw new Error(`Existing ${table} record is missing or changed (${key})`);
     }

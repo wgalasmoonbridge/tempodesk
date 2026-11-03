@@ -79,6 +79,7 @@ export function QuitDialog({ open, onClose }: { open: boolean; onClose: () => vo
         </>
       }
     >
+      <p className="muted" style={{ fontSize: 12 }}>Quitting also stops any live report sharing. Closing to the tray keeps sharing active.</p>
       {active ? (
         <div className="dialog-note" style={{ marginTop: 0 }}>
           <Square size={14} aria-hidden="true" />

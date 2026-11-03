@@ -2468,3 +2468,25 @@ button {
 .history-pagination { margin: 14px 0 24px; }
 .auto-backup-panel { margin-bottom: 16px; }
 .auto-backup-panel .mono { overflow-wrap: anywhere; }
+/* Live report sharing */
+.sharing-banner { display:flex; align-items:center; gap:12px; margin-bottom:20px; padding:12px 16px; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+.sharing-banner > span { flex:1; min-width:0; }
+.sharing-banner strong,.sharing-banner small { display:block; }
+.sharing-banner small { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sharing-error { border-color:var(--warning); }
+.sharing-field { display:flex; flex-direction:column; gap:7px; font-size:12px; font-weight:600; }
+.sharing-options { display:flex; flex-wrap:wrap; align-items:center; gap:16px; margin:18px 0; }
+.sharing-options > label { display:flex; align-items:center; gap:8px; font-size:12px; }
+.sharing-options .sharing-field { align-items:flex-start; margin-left:auto; }
+.sharing-scope,.sharing-preview { border:1px solid var(--border); border-radius:8px; padding:14px; margin:16px 0; }
+.sharing-scope p,.sharing-preview p { margin:7px 0; font-size:12px; }
+.sharing-scope small,.sharing-disclosure { color:var(--muted); font-size:11px; line-height:1.65; }
+.sharing-preview h3 { font-size:13px; margin:0 0 10px; }
+.sharing-preview-rows > div { display:flex; justify-content:space-between; gap:16px; padding:8px 0; border-top:1px solid var(--border); font-size:12px; }
+.sharing-preview-rows > div > span { min-width:0; overflow-wrap:anywhere; }
+.sharing-preview-rows strong { white-space:nowrap; }
+.sharing-state { display:flex; align-items:center; gap:10px; font-size:13px; margin:4px 0 18px; }
+.sharing-live { background:#19816b; }
+.sharing-wait { background:#b47a1d; }
+.sharing-link > label { display:block; font-size:12px; margin-bottom:8px; }
+.sharing-actions { display:flex; gap:8px; margin-top:12px; }

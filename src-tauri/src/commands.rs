@@ -731,6 +731,9 @@ pub fn restore_backup(
     state: State<'_, AppState>,
     source: String,
 ) -> Result<RestoreResult> {
+    // A restored dataset must never become visible through a link created for the old data.
+    use tauri::Manager;
+    app.state::<tempodesk_sharing::SharingService>().stop();
     let now = timeutil::now_ms();
     let result = {
         let mut db = state.db()?;

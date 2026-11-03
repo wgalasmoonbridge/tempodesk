@@ -2,22 +2,23 @@
 param([string]$ResumeBackup = '')
 $ErrorActionPreference = 'Stop'
 $workspacePath = Split-Path -Parent $PSScriptRoot
+$expectedVersion = '0.4.0'
 Set-Location -LiteralPath $workspacePath
 $installedPath = Join-Path $env:LOCALAPPDATA 'TempoDesk\tempodesk.exe'
 $productionDatabasePath = Join-Path $env:APPDATA 'com.tempodesk.desktop\tempodesk.db'
 $releasePath = Join-Path $workspacePath 'src-tauri\target\release\tempodesk.exe'
-$installerPath = Join-Path $workspacePath 'src-tauri\target\release\bundle\nsis\TempoDesk_0.3.0_x64-setup.exe'
+$installerPath = Join-Path $workspacePath "src-tauri\target\release\bundle\nsis\TempoDesk_${expectedVersion}_x64-setup.exe"
 foreach ($requiredPath in @($installedPath, $productionDatabasePath, $releasePath, $installerPath)) {
     if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) { throw "Missing upgrade prerequisite: $requiredPath" }
 }
-if ((Get-Item -LiteralPath $releasePath).VersionInfo.ProductVersion -ne '0.3.0') {
+if ((Get-Item -LiteralPath $releasePath).VersionInfo.ProductVersion -ne $expectedVersion) {
     throw 'Refusing to install an unexpected release version.'
 }
 $installerExitCode = 0
 if (-not $ResumeBackup) {
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $liveBackupPath = Join-Path $workspacePath ".upgrade-backups\before-stop-$stamp"
-$finalBackupPath = Join-Path $workspacePath ".upgrade-backups\installed-0.3.0-$stamp"
+$finalBackupPath = Join-Path $workspacePath ".upgrade-backups\installed-${expectedVersion}-$stamp"
 
 # Take a consistent live snapshot before restarting, including data still in SQLite's WAL.
 & node (Join-Path $PSScriptRoot 'upgrade-records.mjs') snapshot $productionDatabasePath $liveBackupPath
@@ -64,7 +65,7 @@ $installerExitCode = $installerProcess.ExitCode
 if ($LASTEXITCODE -ne 0) { throw 'Installed program verification failed.' }
 $installedHash = (Get-FileHash -LiteralPath $installedPath -Algorithm SHA256).Hash
 $installedVersion = (Get-Item -LiteralPath $installedPath).VersionInfo.ProductVersion
-if ($installedVersion -ne '0.3.0') { throw 'Installed program version is unexpected.' }
+if ($installedVersion -ne $expectedVersion) { throw 'Installed program version is unexpected.' }
 & node (Join-Path $PSScriptRoot 'upgrade-records.mjs') verify $productionDatabasePath $manifestPath
 if ($LASTEXITCODE -ne 0) { throw 'Records changed during installation. Backups have been retained.' }
 

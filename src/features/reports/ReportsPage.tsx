@@ -27,6 +27,7 @@ import {
 } from "../../lib/time";
 import { BarChart } from "./BarChart";
 import { SummaryPanel } from "../summary/SummaryPanel";
+import { ShareButton } from "../sharing/SharingProvider";
 
 type SortKey = "start" | "duration" | "description" | "project" | "billable";
 type SortDirection = "asc" | "desc";
@@ -181,6 +182,7 @@ export function ReportsPage() {
           </div>
         </div>
         <div className="page-header-actions">
+          <ShareButton filter={filter} title={clients.find((client) => client.id === clientId)?.name ?? projects.find((project) => project.id === projectId)?.name ?? "Time report"} disabled={loading || !report || report.entryCount === 0} />
           <Button
             icon={<Download size={14} aria-hidden="true" />}
             onClick={() => void exportCsv()}

@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.4.0 — 2026-11-04
+
+### Added
+
+- Live browser sharing from Reports and Timesheet: preview fixed filters and selected fields,
+  set a 15-minute to 24-hour expiry, create/copy a temporary link, and replace its token.
+- A sharing banner on every screen with Stop sharing. Quit, expiry, tunnel failure and backup
+  restore end sharing; closing to the tray keeps it active.
+- Automatic, checksum-verified Cloudflare helper setup, loopback-only read-only HTTP, a separate
+  read-only SQLite connection, restricted public projection, random capabilities, scope/method
+  rejection, request limits, no-store headers and a browser view without external assets.
+- Live totals from committed edits and running timers. The browser retains its last report on
+  connection failure, reconnects, and clears locally at known expiry.
+
+### Data and limitations
+
+- No schema change. Sharing is off on launch and starts only after Create public link. Descriptions
+  and billable details are hidden by default; selected project names and session times are visible
+  in the preview. Existing local records are retained.
+- Quick Tunnels are a beta feature with no uptime guarantee. PC/app/Internet availability is
+  required; new sessions receive new addresses. Anyone with a link can view and retain the shared
+  data. Stable hosting and email/password gates remain outside this release.
+- Windows native app/public-tunnel tests pass with generated records in an isolated profile.
+  macOS runtime and physical sleep/wake remain unverified.
+
+### Windows upgrade verification
+
+- Applied the 0.4.0 NSIS installer over the installed 0.3.0 app in update mode. Before/after
+  per-row checks passed for existing entries, clients, projects, tags, tag links, settings,
+  templates, undo and idle-review records; the running timer stayed active. SQLite/JSON backups
+  and the previous executable were retained before installation. Sharing starts off.
+- Local GNU installer SHA-256:
+  `91b7d540d520049714fe47f04e608bd97e941ed7a249a67411005f7d18236364`.
+
 ## 0.3.0 — 2026-11-03
 
 ### Added

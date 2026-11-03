@@ -29,6 +29,7 @@ import {
 import { entryTimeRange, entryTitle, pluralize } from "../../lib/format";
 import { EntryDialog } from "../entries/EntryDialog";
 import { SummaryPanel } from "../summary/SummaryPanel";
+import { ShareButton } from "../sharing/SharingProvider";
 
 interface CellTarget {
   date: string;
@@ -93,6 +94,7 @@ export function TimesheetPage() {
           </div>
         </div>
         <div className="page-header-actions">
+          <ShareButton filter={{dateFrom:weekStart,dateTo:addDaysKey(weekStart,6),timezone}} view="timesheet" title="Weekly timesheet" disabled={loading || !sheet || sheet.totalSeconds === 0} />
           <Button
             size="sm"
             icon={<Sparkles size={14} aria-hidden="true" />}

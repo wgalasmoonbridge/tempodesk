@@ -57,6 +57,7 @@ node scripts/ui-closepref.mjs   # close-to-tray off → quit dialog
 node scripts/check-scroll.mjs   # content pane has a working vertical scroll range
 node scripts/ui-bulk-delete.mjs # self-contained bulk select/delete/undo + running guard
 node scripts/ui-workflows.mjs   # templates, bulk edit/undo, auto backups/restore, 1,005-entry pagination
+node scripts/ui-sharing.mjs     # generated native data through a public tunnel, live reads, stop/quit cleanup; quits test app
 node scripts/ui-ai-summary.mjs  # AI settings, fake test-profile key round trip, local summaries
 node scripts/ui-capture.mjs     # screenshots
 ```
@@ -106,9 +107,9 @@ For an explicitly authorized installed-app upgrade, `install-upgrade.ps1` takes 
 snapshots with `upgrade-records.mjs`, including committed WAL data, and saves the previous executable.
 It rehearses migrations against a workspace copy using `core/examples/upgrade_guard.rs`, builds an
 app-readable JSON backup, applies NSIS `/S /UPDATE`, verifies installed executable/version hashes,
-and checks every pre-existing row before and after launch. Source database inspection is read-only.
+and checks every pre-existing row before and after launch, including templates, undo and idle-review records. Source database inspection is read-only.
 The active timer is preserved for the recovery flow. Backup artifacts live in git-ignored
-`.upgrade-backups/`; the upgrade script is intentionally pinned to release 0.3.0.
+`.upgrade-backups/`; the upgrade script is intentionally pinned to release 0.4.0.
 
 - Time zone: `America/Chicago` is used in a few scripts to read the current date.
 - Overnight test date: `2026-10-27` (host clock is 2026-10-28).

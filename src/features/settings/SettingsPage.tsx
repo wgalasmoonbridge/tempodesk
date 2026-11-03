@@ -1083,8 +1083,8 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
                 <div>
                   <h3>Network and privacy</h3>
                   <p>
-                    AI summaries are the only network feature. A request is made only when you
-                    click Generate, never in the background. Create a Gemini key in Google AI
+                    AI requests run only when you click Generate. Live report sharing connects
+                    while you explicitly keep a share active. Create a Gemini key in Google AI
                     Studio (aistudio.google.com/app/apikey). Without a key, daily/weekly/monthly
                     summaries still work locally and fully offline.
                   </p>
@@ -1171,10 +1171,12 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
               <div className="card">
                 <div className="setting-row">
                   <div className="setting-main">
-                    <div className="setting-title">No background network calls</div>
+                    <div className="setting-title">Connections only when requested</div>
                     <div className="setting-desc">
-                      TempoDesk makes no network requests unless you explicitly generate an AI
-                      summary. There is no account, cloud sync, analytics, or telemetry.
+                      Network access starts when you generate an AI summary or create a live
+                      sharing link. Sharing downloads a verified Cloudflare helper and carries
+                      only your selected report through its tunnel until you stop, quit, or the
+                      link expires. There is no account, cloud sync, analytics, or telemetry.
                     </div>
                   </div>
                   <div className="setting-control">

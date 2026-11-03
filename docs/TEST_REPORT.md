@@ -333,3 +333,52 @@ documented there.
   is still a manual release check.
 - Linker warning on GNU: `.rsrc merge failure: multiple non-default manifests`; app/installer still
   work. MSVC is recommended for production/signing.
+
+## 10. Live report sharing experiment (2026-11-04)
+
+The standalone `sharing-poc/` harness uses generated records in an in-memory SQLite database.
+It has no production-data path option and does not change the installed app. This evidence covers
+the experiment, not a released TempoDesk feature.
+
+- **PASS** — 7 Rust unit/HTTP tests and 3 browser-script tests; Rust formatting/Clippy, native
+  harness build, root typecheck, and ESLint.
+- **PASS** — Actual Cloudflare Quick Tunnel HTTPS access to the viewer and scoped report. A
+  new demo record and the active demo timer update the shared totals without changing scope.
+- **PASS** — Query-string scope changes return 400; public writes return 405; read requests
+  preserve the ledger fingerprint. Private project canaries and non-approved fields stay absent.
+- **PASS** — Rotation invalidates the previous token; revocation and expiry deny future reads
+  through the public URL. New grants receive different random tokens.
+- **PASS** — Isolated headless Edge displays both report views, retains the last report during
+  source failure, reconnects, and clears revoked data. The 390px viewport has no page overflow.
+  Screenshots and logs are in ignored `.test-data/sharing-*` directories.
+- **RESOLVED** — Initial public checks hit temporary-hostname DNS failures. The launcher now
+  waits for a reachable report before presenting its link, with a three-minute startup deadline.
+- **NOT VERIFIED** — Physical PC sleep/wake, macOS runtime, persistent production tunnel
+  restarts, and production app integration. The generated demo remains bounded to one hour.
+
+Reproduce and review limitations in [sharing-poc/README.md](../sharing-poc/README.md).
+
+## 11. Desktop live sharing (0.4.0, 2026-11-04)
+
+- **PASS** — Complete `npm run check`: typecheck, ESLint, 29 Vitest tests, 57 core Rust tests,
+  6 sharing Rust tests, 4 shared-viewer tests, formatting, Clippy and native cargo check.
+- **PASS** — Native debug app build using the separate Dev identifier and test data directory.
+- **PASS** — `ui-sharing.mjs` on isolated test profile `run-1793732663722`, app version 0.4.0:
+  frozen preview and hidden fields; public HTTPS projection matching the native report; no leaked
+  canary/project; query and write rejection; identical saved-entry rows after preview/public reads;
+  committed entry additions and active-timer totals reflected live; old token invalid after
+  replacement; global Stop from Timesheet removes public access; cancelled startup stays stopped;
+  normal app quit removes access. The second link opens with the timesheet fragment.
+- **PASS** — Read-only connection rejects SQL writes; server expiry/revocation/rotation checks
+  apply to requests; public totals reconcile with daily and grouped projections. The viewer
+  clears locally at known expiry even if its source is unavailable.
+- Evidence: `.test-data/run-1793732663722/sharing-check/results.json`, `owner-preview.png` and
+  `owner-active.png`. All shared native fixtures were generated; installed data was never shared.
+- **LIMITS** — Temporary beta tunnel with no uptime guarantee. Physical sleep/wake, macOS runtime,
+  stable named hosting and email/password gates remain unverified or unimplemented. Previously
+  received views/copies cannot be remotely erased by stopping a tunnel.
+- **PASS** — Built and installed the 0.4.0 Windows NSIS update over 0.3.0. A consistent live
+  snapshot, final snapshot, JSON backup and previous executable were retained. Migration rehearsal,
+  packaged/installed binary comparison, and every pre-existing persisted-record comparison passed
+  before install and after launch. The active timer was preserved; sharing was not started.
+  Receipt: ignored `.upgrade-backups/installed-0.4.0-20261104-031659/installation-verification.json`.

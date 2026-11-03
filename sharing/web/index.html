@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Live report · TempoDesk</title>
+  <link rel="stylesheet" href="/assets/viewer.css">
+  <script src="/assets/viewer.js" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="#report"><span class="logo" aria-hidden="true">T</span>TempoDesk</a><span class="readonly">Read-only share</span></header>
+  <main>
+    <div id="demo-banner" class="demo-banner" hidden>SHARING PROTOTYPE · Generated demo records only</div>
+    <section class="heading"><div><p class="eyebrow">SHARED TIME REPORT</p><h1 id="title">Loading your report…</h1><p id="range" class="muted"></p></div><div class="connection"><span id="connection-dot" class="dot"></span><span id="connection-label" role="status" aria-live="polite">Connecting</span></div></section>
+    <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+    <div id="content" hidden>
+      <section class="stats" aria-label="Report overview"><article><p>Total tracked</p><strong id="total">—</strong><small>Across the selected dates</small></article><article><p>Sessions</p><strong id="sessions">—</strong><small>Including active work</small></article><article><p>Latest update</p><strong id="updated">—</strong><small id="timezone"></small></article><article id="billable-card" hidden><p>Billable</p><strong id="billable">—</strong><small>Shared by the owner</small></article></section>
+      <nav class="tabs" aria-label="Report views"><button id="report-tab" type="button" aria-pressed="true">Overview</button><button id="timesheet-tab" type="button" aria-pressed="false">Timesheet</button></nav>
+      <section id="report-view"><article class="card"><h2>Daily activity</h2><p class="muted">Time allocated to each calendar day.</p><div id="chart" class="chart" aria-label="Daily tracked time"></div></article><article class="card"><h2>Work sessions</h2><div class="table-scroll"><table><thead><tr><th>Project</th><th>Work</th><th>Started</th><th>Duration</th></tr></thead><tbody id="entries"></tbody></table></div></article></section>
+      <section id="timesheet-view" hidden><article class="card"><h2>Timesheet</h2><p class="muted">The same scoped sessions, grouped by project and day.</p><div class="table-scroll"><table><thead id="week-head"></thead><tbody id="week-body"></tbody><tfoot id="week-foot"></tfoot></table></div></article></section>
+      <footer><span id="expiry"></span><span>This page refreshes every 5 seconds while visible.</span></footer>
+    </div>
+  </main>
+</body>
+</html>

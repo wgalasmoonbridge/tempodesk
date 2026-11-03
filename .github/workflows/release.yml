@@ -37,12 +37,15 @@ jobs:
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       - name: Cache Rust builds
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             core -> target
+            sharing -> target
             src-tauri -> target
 
       - name: Install frontend dependencies
@@ -50,6 +53,9 @@ jobs:
 
       - name: Verify frontend
         run: npm run typecheck && npm run lint && npm run test
+
+      - name: Verify reporting and sharing
+        run: cargo test --manifest-path core/Cargo.toml --locked && npm run check:sharing
 
       - name: Build and publish TempoDesk
         uses: tauri-apps/tauri-action@v0
@@ -59,11 +65,14 @@ jobs:
           tagName: v__VERSION__
           releaseName: TempoDesk __VERSION__
           releaseBody: |
-            TempoDesk 0.3.0 adds saved task templates, transactional bulk editing with undo,
-            opt-in automatic local backups with retention, and paginated history with complete totals.
+            TempoDesk 0.4.0 adds optional live report and timesheet sharing from the desktop app.
+            Preview the exact filters and fields, create a temporary browser link, replace it,
+            and stop sharing from any screen. Links expire and stop when the app quits.
 
-            Existing records are preserved through the schema upgrade. Backup format v2 includes
-            templates and can restore v1 backups. Automatic backup scheduling stays off after restore.
+            Existing local records remain on the device. Sharing uses a separate read-only
+            connection and carries only the selected report through Cloudflare. The PC and app
+            must stay online. Temporary Quick Tunnel addresses are a beta feature without an
+            uptime guarantee. Sharing is off until you create a link.
 
             This is an unsigned prerelease. See CHANGELOG.md for verification evidence, checksums
             for the locally built Windows artifacts, and known platform limitations.

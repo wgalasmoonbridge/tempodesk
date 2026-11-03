@@ -30,6 +30,9 @@ import type {
   RecoveryInfo,
   ReportFilter,
   ReportResult,
+  ShareInput,
+  SharingStatus,
+  SharedReportPreview,
   RestoreResult,
   SettingsPatch,
   SettingsUpdateResult,
@@ -108,6 +111,11 @@ export const api = {
   getTimesheet: (weekStart: string, timezone: string) =>
     call<Timesheet>("get_timesheet", { weekStart, timezone }),
   getReport: (filter: ReportFilter) => call<ReportResult>("get_report", { filter }),
+  previewSharing: (input: ShareInput) => call<SharedReportPreview>("preview_sharing", { input }),
+  startSharing: (input: ShareInput) => call<SharingStatus>("start_sharing", { input }),
+  getSharingStatus: () => call<SharingStatus>("get_sharing_status"),
+  stopSharing: () => call<SharingStatus>("stop_sharing"),
+  rotateSharingLink: () => call<SharingStatus>("rotate_sharing_link"),
   exportReportCsv: (filter: ReportFilter, destination: string) =>
     call<ExportResult>("export_report_csv", { filter, destination }),
 

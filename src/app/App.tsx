@@ -34,6 +34,7 @@ import { RecoveryModal } from "../features/timer/RecoveryModal";
 import { QuitDialog } from "../features/settings/QuitDialog";
 import { ShortcutsDialog } from "../features/settings/ShortcutsDialog";
 import { formatDateLong, todayKey } from "../lib/time";
+import { SharingBanner } from "../features/sharing/SharingProvider";
 
 const NAV_ITEMS: { route: Route; label: string; icon: typeof Timer; group: string }[] = [
   { route: "tracker", label: "Time Tracker", icon: Timer, group: "Track" },
@@ -217,11 +218,11 @@ export function App() {
 
           <div
             className="sidebar-footer"
-            title={active ? "Timer running" : "Local-only, no sync"}
-            aria-label={active ? "Timer running" : "Local-only, no sync"}
+            title={active ? "Timer running" : "Local data, no sync"}
+            aria-label={active ? "Timer running" : "Local data, no sync"}
           >
             <span className={`status-dot${active ? " busy" : ""}`} aria-hidden="true" />
-            <span>{active ? "Timer running" : "Local-only · no sync"}</span>
+            <span>{active ? "Timer running" : "Local data · no sync"}</span>
           </div>
         </aside>
 
@@ -274,6 +275,7 @@ export function App() {
           </header>
 
           <div className="content">
+            <SharingBanner />
             {!ready ? (
               <div className="page">
                 <EmptyState
