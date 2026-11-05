@@ -63,7 +63,7 @@ pub fn validate_source(raw: &str, extension: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
-fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
+pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     let parent = path
         .parent()
         .ok_or_else(|| AppError::validation("Invalid destination"))?;
@@ -226,6 +226,8 @@ pub fn build_document(conn: &Connection, app_version: &str, now: i64) -> Result<
         .ok_or_else(|| AppError::Internal("Settings serialization failed".into()))?;
     settings.remove("autoBackupDirectory");
     settings.remove("autoBackupEnabled");
+    settings.remove("machineActivityEnabled");
+    settings.remove("machineActivityRetentionDays");
 
     Ok(BackupDocument {
         templates: crate::domain::templates::list(conn)?,
@@ -460,6 +462,8 @@ pub fn restore_backup(
     let (document, path) = read_document(source)?;
     let incoming_counts = counts(&document);
     let _ = &path;
+    let machine_retention = repo_settings::load(conn)?.machine_activity_retention_days;
+    let machine_cleared_at = repo_settings::get_runtime(conn, "machine_activity_cleared_at_utc")?;
 
     std::fs::create_dir_all(safety_dir)?;
     let safety_document = build_document(conn, app_version, now)?;
@@ -568,11 +572,20 @@ pub fn restore_backup(
         }
     }
 
-    // Backup folder paths are machine-specific. Restore into the local default with scheduling off.
+    // Device-local monitoring requires fresh consent after restore. Local activity history stays
+    // on this device; it is neither exported nor replaced by a portable backup.
     tx.execute(
-        "DELETE FROM app_settings WHERE key IN ('autoBackupDirectory', 'autoBackupEnabled')",
+        "DELETE FROM app_settings WHERE key IN ('autoBackupDirectory', 'autoBackupEnabled',
+            'machineActivityEnabled', 'machineActivityRetentionDays')",
         [],
     )?;
+    tx.execute(
+        "INSERT INTO app_settings (key, value_json) VALUES ('machineActivityRetentionDays', ?1)",
+        [machine_retention.to_string()],
+    )?;
+    if let Some(cleared_at) = machine_cleared_at {
+        repo_settings::set_runtime(&tx, "machine_activity_cleared_at_utc", &cleared_at)?;
+    }
     for template in &document.templates {
         tx.execute("INSERT INTO task_templates (id, name, description, project_id, tag_ids_json, is_billable) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![template.id, template.name, template.description, template.project_id, serde_json::to_string(&template.tag_ids)?, template.is_billable])?;

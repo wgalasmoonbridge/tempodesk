@@ -1,15 +1,19 @@
 # Platform Support
 
-TempoDesk targets **Windows 11** and **macOS 13+**. This repository was developed and runtime-tested
+TempoDesk targets **Windows 11** and **macOS 13+**, with experimental **Linux** builds now configured.
+This repository was developed and runtime-tested
 only on Windows 11 x64. An unsigned Intel macOS app/DMG builds successfully in GitHub Actions, but
-macOS runtime behavior remains **unverified** until tested on real hardware.
+macOS runtime behavior remains **unverified** until tested on real hardware. The new CI/release
+matrices also include Apple Silicon and Linux; those new packages have not been built on this host.
+See [MACHINE_ACTIVITY.md](MACHINE_ACTIVITY.md) for the account/login feature's three-OS capability
+matrix, compile checks, privacy boundaries, and remaining runtime tests.
 
 ## Support matrix
 
 | Capability | Windows 11 | macOS 13+ |
 |---|---|---|
 | Build status on this repo | **Verified** locally (GNU) and in CI (MSVC) | **Intel CI build passed**; runtime unverified |
-| Installer | **0.2.0 NSIS + MSI published**; prior 0.1.0 NSIS install verified | **0.2.0 unsigned app + DMG published**; install/runtime unverified |
+| Installer | **0.5.0 local NSIS installed and verified** over 0.4.0; previous 0.4.0 NSIS/MSI published | **0.4.0 Intel app/DMG published**; install/runtime unverified |
 | Native titlebar/window controls | **Verified** | Implemented (Tauri native decorations), unverified |
 | Native menu bar | **Verified visually** (File/Edit/Window/Help) | Implemented (app menu added on macOS), unverified |
 | System tray / menu-bar icon | Created (`trayAvailable: true`); menu actions not click-tested | Implemented with tray title elapsed time; unverified |
@@ -19,6 +23,7 @@ macOS runtime behavior remains **unverified** until tested on real hardware.
 | OS theme following | Light/dark/system overrides **verified**; live OS switch not toggled | Same `matchMedia` path; unverified |
 | Native notifications | Implemented; permission prompt not exercised; in-app fallback **verified** | Requires notification permission at first send/request; unverified |
 | Idle detection | **Verified** with `GetLastInputInfo` (opt-in) | Implemented via `CGEventSourceSecondsSinceLastEventType` (combined session, no window content); unverified |
+| Machine activity | **0.5.0 installed**; native identity/session query, dev UI, and data-preserving upgrade verified; physical lock/RDP checks pending | Intel/Apple Silicon adapters cross-checked; runtime unverified; public lock events unsupported |
 | AI API key storage | **Verified** Windows Credential Manager (per-profile accounts); fake test key set/removed | Implemented with Keychain (`apple-native`); unverified |
 | AI summaries | Local summaries **verified**; Gemini request path compiled, key storage verified, live call not tested without a key | Local summaries implemented; Gemini live call unverified |
 | Autostart | **Verified** (HKCU Run create/remove + hidden `--autostart` launch; second launch shows window) | Implemented via LaunchAgent; unverified |
@@ -101,13 +106,24 @@ Legend: **Verified** = run on this host; **Implemented** = code present, not run
 
 ## Linux
 
-Not an MVP target. Tauri can build on Linux, and most logic is cross-platform, but tray/global
-shortcut/idle support varies by desktop environment and has not been validated. The idle API returns
-“unavailable” with a non-blocking explanation, and the app remains usable.
+Experimental desktop target. The check/release matrices now include Ubuntu 24.04 x64 with deb and
+AppImage packaging configured; neither a Linux desktop nor the new packages were run on this host.
+Native machine-activity adapters were cross-checked for x86_64 Linux. Account identity uses libc;
+login/session metadata uses the current process's logind/elogind session over system D-Bus. UID
+mismatches are rejected. Without that service or a matching session, identity still works and the UI
+reports other capabilities unavailable. LockedHint is advisory and sampled, so GNOME/KDE compositor
+support must be tested on both X11 and Wayland.
+
+Tray/global shortcuts/autostart still vary by desktop environment and need runtime validation. The
+existing idle API returns “unavailable” with a non-blocking explanation; it is independent of the new
+machine-activity feature. Linux build dependencies include `libwebkit2gtk-4.1-dev`, `libssl-dev`,
+`libdbus-1-dev`, `librsvg2-dev`, `libayatana-appindicator3-dev`, `libxdo-dev`, `patchelf`, and a C compiler.
 
 ## Distribution
 
 - Windows: NSIS current-user installer (built, unsigned).
-- macOS: unsigned Intel `.app`/`.dmg` built and published by GitHub Actions; not runtime-tested.
+- macOS: unsigned Intel `.app`/`.dmg` previously built and published by GitHub Actions; not runtime-tested.
+  Apple Silicon is now included in the build/release matrix, pending runner and real-device verification.
+- Linux: deb/AppImage packaging configured in CI; build/install/runtime verification remains pending.
 - Public distribution requires code signing/notarization and an update pipeline; those are P1 and
   intentionally deferred.

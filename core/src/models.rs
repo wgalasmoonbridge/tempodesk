@@ -378,6 +378,8 @@ pub struct IdleReview {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
+    pub machine_activity_enabled: bool,
+    pub machine_activity_retention_days: u32,
     pub auto_backup_enabled: bool,
     pub auto_backup_directory: String,
     pub auto_backup_retention: u32,
@@ -406,6 +408,8 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
+            machine_activity_enabled: false,
+            machine_activity_retention_days: 30,
             auto_backup_enabled: false,
             auto_backup_directory: String::new(),
             auto_backup_retention: 14,
@@ -436,6 +440,8 @@ impl Default for AppSettings {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsPatch {
+    pub machine_activity_enabled: Option<bool>,
+    pub machine_activity_retention_days: Option<u32>,
     pub auto_backup_enabled: Option<bool>,
     pub auto_backup_directory: Option<String>,
     pub auto_backup_retention: Option<u32>,
@@ -525,6 +531,75 @@ pub struct SummaryResult {
     pub range_label: String,
     pub total_seconds: i64,
     pub warning: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
+// Device-local machine activity (never included in time reports or backups)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineSession {
+    pub account_id: String,
+    pub user_name: String,
+    pub domain: Option<String>,
+    pub machine_name: String,
+    pub session_id: Option<String>,
+    pub login_at_utc: Option<i64>,
+    pub locked: Option<bool>,
+    pub active: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineCapability {
+    pub feature: String,
+    /// available | unsupported | permission_required | unavailable | disabled
+    pub status: String,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineActivityStatus {
+    pub enabled: bool,
+    pub current_session: Option<MachineSession>,
+    pub capabilities: Vec<MachineCapability>,
+    pub last_observed_at_utc: Option<i64>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineActivityEvent {
+    pub id: String,
+    pub account_id: String,
+    pub user_name: String,
+    pub domain: Option<String>,
+    pub machine_name: String,
+    pub session_id: Option<String>,
+    pub kind: String,
+    pub event_at_utc: i64,
+    pub observed_at_utc: i64,
+    pub source: String,
+    pub timing: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineActivityFilter {
+    pub from_utc: Option<i64>,
+    /// Exclusive upper bound, matching the time-history convention.
+    pub to_utc: Option<i64>,
+    pub limit: Option<u32>,
+    pub offset: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineActivityPage {
+    pub events: Vec<MachineActivityEvent>,
+    pub total_count: i64,
 }
 
 // ---------------------------------------------------------------------------

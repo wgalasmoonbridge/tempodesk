@@ -8,7 +8,7 @@ import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 const tables = {
   clients: ["id"], projects: ["id"], tags: ["id"],
   time_entries: ["id"], entry_tags: ["entry_id", "tag_id"], app_settings: ["key"],
-  task_templates: ["id"], bulk_edit_undo: ["id"], idle_review_events: ["id"],
+  task_templates: ["id"], bulk_edit_undo: ["id"], idle_review_events: ["id"], machine_activity: ["id"],
 };
 
 function inspect(path) {
@@ -63,13 +63,16 @@ if (mode === "snapshot") {
 } else if (mode === "verify") {
   const expected = JSON.parse(readFileSync(destination, "utf8"));
   let actual = inspect(source);
-  if (process.argv.includes("--wait-for-schema=2")) {
+  const schemaArgument = process.argv.slice(5).find((arg) => arg.startsWith("--wait-for-schema="));
+  if (schemaArgument !== undefined) {
+    const targetSchema = Number(schemaArgument.slice("--wait-for-schema=".length));
+    if (!Number.isSafeInteger(targetSchema) || targetSchema < 1) throw new Error("Invalid expected schema version");
     const deadline = Date.now() + 30000;
-    while (actual.schema !== 2 && Date.now() < deadline) {
+    while (actual.schema < targetSchema && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       actual = inspect(source);
     }
-    if (actual.schema !== 2) throw new Error("Updated app did not apply schema version 2");
+    if (actual.schema !== targetSchema) throw new Error(`Updated app did not apply schema version ${targetSchema}`);
   }
   console.log(JSON.stringify({ verified: true, schema: actual.schema, visibleEntries: actual.visibleEntries, activeTimers: actual.activeTimers, preserved: compare(expected, actual) }, null, 2));
 } else if (mode === "binary-verify") {

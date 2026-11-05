@@ -22,6 +22,13 @@ jobs:
           - name: macOS Intel
             os: macos-15-intel
             args: ""
+          - name: macOS Apple Silicon
+            os: macos-15
+            target: aarch64-apple-darwin
+            args: "--target aarch64-apple-darwin"
+          - name: Linux x64 (experimental)
+            os: ubuntu-24.04
+            args: "--bundles deb,appimage"
 
     runs-on: ${{ matrix.os }}
 
@@ -39,6 +46,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux desktop build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libdbus-1-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev patchelf
 
       - name: Cache Rust builds
         uses: Swatinem/rust-cache@v2
@@ -54,8 +68,8 @@ jobs:
       - name: Verify frontend
         run: npm run typecheck && npm run lint && npm run test
 
-      - name: Verify reporting and sharing
-        run: cargo test --manifest-path core/Cargo.toml --locked && npm run check:sharing
+      - name: Verify reporting, sharing, and native adapters
+        run: cargo test --manifest-path core/Cargo.toml --locked && npm run check:sharing && npm run test:desktop
 
       - name: Build and publish TempoDesk
         uses: tauri-apps/tauri-action@v0
@@ -65,7 +79,8 @@ jobs:
           tagName: v__VERSION__
           releaseName: TempoDesk __VERSION__
           releaseBody: |
-            TempoDesk 0.4.0 adds optional live report and timesheet sharing from the desktop app.
+            TempoDesk includes opt-in machine activity logging and optional live report and
+            timesheet sharing from the desktop app.
             Preview the exact filters and fields, create a temporary browser link, replace it,
             and stop sharing from any screen. Links expire and stop when the app quits.
 
@@ -73,6 +88,10 @@ jobs:
             connection and carries only the selected report through Cloudflare. The PC and app
             must stay online. Temporary Quick Tunnel addresses are a beta feature without an
             uptime guarantee. Sharing is off until you create a link.
+
+            Machine activity logging is separately opt-in and stays local. Native login/session
+            coverage varies by OS; see docs/MACHINE_ACTIVITY.md for capability and runtime limits.
+            Linux packages are experimental.
 
             This is an unsigned prerelease. See CHANGELOG.md for verification evidence, checksums
             for the locally built Windows artifacts, and known platform limitations.

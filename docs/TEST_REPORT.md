@@ -1,5 +1,71 @@
 # TempoDesk Test Report
 
+## Installed machine-activity update — 0.5.0, 2026-11-06
+
+With explicit approval, built and installed the local unsigned Windows 0.5.0 NSIS update over the
+installed 0.4.0 app using `/S /UPDATE` (installer exit code 0). The original app kept running during
+the release build. Before restarting it, consistent live/final SQLite snapshots included committed
+WAL data, and the previous executable and an app-readable JSON backup were retained. Schema 2 → 3
+was rehearsed on workspace copies, never directly against the production database.
+
+Per-row fingerprints matched immediately before installation, after installation, and after the
+updated app launched/migrated. Preserved: all **34 time entries** (23 non-deleted, including one
+active timer), 18 stored settings, 3 clients, 4 projects, 1 tag, 1 tag association, and 3 idle reviews.
+The active entry's original timestamps/metadata remained unchanged; the installed tracker visibly
+renders the continuing timer. Machine activity stayed off and its new table contained zero events.
+No production feature toggle, timer action, or synthetic work record was used for verification.
+
+- Installed executable: `%LOCALAPPDATA%\TempoDesk\tempodesk.exe`, version **0.5.0**; running and responsive.
+- Installed SHA-256: `1d4d2febb2ebd4d654b5f561f52194171ae31188462c8e3209555c9752c63763`.
+- NSIS installer SHA-256: `1cf0ee2b099139c94203e6590e2b18844cec55e12635df850d5717de158fa75d`.
+- Binary equality was checked against the release artifact, accounting only for Tauri's NSIS bundle marker.
+- Receipt/backups: `.upgrade-backups/installed-0.5.0-20261106-042003/installation-verification.json`.
+- A read-only native window capture confirmed the installed frontend rendered. The capture stays
+  private inside that ignored backup folder; no production screenshots are committed. UI Automation
+  did not expose the WebView's named controls, so it was not used to assert navigation behavior.
+- `npm run check` rerun at app version 0.5.0: **114 tests passed**, with formatting, typecheck, ESLint,
+  core/native/sharing Clippy and Rust checks passing. Release frontend and NSIS builds passed too;
+  the known GNU manifest-merge warning remains.
+
+The version-bumped app/config/lockfiles agree on 0.5.0. The guarded installer script now derives its
+expected app version from the Tauri config, checks schema 3, and includes existing machine-activity
+rows in preservation manifests. No GitHub release was published; macOS/Linux runtime and new CI
+runner/package verification remain pending.
+
+## Machine activity — development verification (before installation)
+
+Verified locally on Windows 11 using only isolated `.test-data/run-*` profiles. The installed
+production app/database were not upgraded or driven by these tests.
+
+| Check | Result |
+|---|---|
+| `npm run check` | Pass: typecheck, ESLint, formatting, Clippy with warnings denied, Rust checks, tests |
+| Core Rust | 66 passed (51 unit + 15 integration), including schema 1/2 → 3 preservation |
+| Windows desktop Rust | 4 passed, including real token/session lookup, synthetic notification filtering, cache invalidation |
+| Frontend / sharing | 34 Vitest + 6 sharing Rust + 4 viewer tests passed |
+| `npm run build:test` | Dev desktop and frontend built successfully |
+| `node scripts/ui-machine-activity.mjs` | Pass: consent/cancel, native identity, OS login time, capability display, retention, CSV, dedupe, backup/restore privacy, clear, opt-out, timer isolation |
+| macOS Intel / Apple Silicon adapters | Adapter-only cross-target Clippy/type checks passed for both architectures |
+| Linux x64 adapters | Adapter-only cross-target Clippy/type checks passed |
+
+All four native Windows capabilities (identity, login time, lock, session) reported available on the
+host. Physical lock/unlock, RDP, actual logout/reboot, user switching, and sleep remain manual checks;
+synthetic notifications never locked the user's machine. The UI screenshot contains local identity
+and remains git-ignored at `.test-data/machine-activity.png`.
+
+The Windows library-test harness initially failed to load because Rust's default test manifest lacks
+Common Controls v6. `test:desktop` now uses an opt-in test manifest; normal production builds are
+unchanged. The existing GNU linker manifest-merge warning remains, including in debug builds/tests,
+but the executables run and tests pass. Close the test app before rebuilding on Windows to avoid
+resource/executable file locks.
+
+The macOS/Linux cross-check harness compiled the real adapter files and models with minimal native
+dependencies, not the full Tauri application. Native CI/build/release matrices are configured for
+Windows, Intel Mac, Apple Silicon Mac, and Linux. New runner/package results and macOS/Linux runtime
+behavior are **not verified on this Windows host**. See [MACHINE_ACTIVITY.md](MACHINE_ACTIVITY.md)
+for capability differences and the real-device checklist. This development-stage verification did
+not publish a release or update the installed app; the later authorized installation is recorded above.
+
 ## GitHub release 0.3.0 — 2026-11-03
 
 [Release workflow](https://github.com/wgalasmoonbridge/tempodesk/actions/runs/41663271527)

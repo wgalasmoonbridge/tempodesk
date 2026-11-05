@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.5.0 — 2026-11-06 (local Windows build)
+
+- Opt-in **Settings → Machine activity**: current OS account/device/session, OS-reported login time
+  when available, honest session observations, supported events, capability diagnostics, paginated
+  date-filtered history, full-range CSV, configurable retention, and confirmed clear-history.
+- Native Windows WTS, macOS console/NSWorkspace, and Linux logind/elogind adapters. macOS screen-lock
+  events are explicitly unsupported; Linux hints are advisory and sampled. No administrator service,
+  passwords, input capture, machine-wide history, or changes to work timers.
+- Schema v3 preserves existing timers/tasks. Activity and consent never enter portable backups,
+  reports, AI, or shared links. Restore preserves local activity/retention but disables monitoring.
+- Native test execution now includes a Windows test manifest for Common Controls v6. Build/check
+  and release matrices now include macOS Apple Silicon and experimental Linux deb/AppImage targets.
+- Windows native identity/UI checks and shared-core/frontend tests are covered locally; macOS Intel,
+  Apple Silicon, and Linux adapters are cross-checked, **not runtime-verified**. New CI packages and
+  real login/lock/RDP/fast-user-switch/sleep flows still need platform verification. See
+  [docs/MACHINE_ACTIVITY.md](docs/MACHINE_ACTIVITY.md).
+
+### Installed Windows update
+
+- Built the unsigned 0.5.0 GNU NSIS installer and applied it over installed 0.4.0 using `/S /UPDATE`
+  (exit code 0). Live/final SQLite snapshots, an app-readable JSON backup, and the old executable
+  were retained. Schema 2 → 3 was rehearsed on a workspace copy before installation.
+- Per-row fingerprints matched for all 34 time entries (including deleted rows and the active timer),
+  18 stored settings, clients/projects/tags, associations, and idle reviews before and after launch.
+  The installed app renders its tracker with the timer still running. Logging remains off by default;
+  the new machine-activity table is empty until consent.
+- Local installer SHA-256: `1cf0ee2b099139c94203e6590e2b18844cec55e12635df850d5717de158fa75d`.
+  Installed executable SHA-256: `1d4d2febb2ebd4d654b5f561f52194171ae31188462c8e3209555c9752c63763`.
+- Upgrade verification: `.upgrade-backups/installed-0.5.0-20261106-042003/installation-verification.json`
+  (git-ignored). This is a local installation, not a published GitHub release. macOS/Linux runtime
+  and new runner/package verification remain pending.
+
 ## 0.4.0 — 2026-11-04
 
 ### Added

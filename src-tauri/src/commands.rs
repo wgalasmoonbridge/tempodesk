@@ -1,17 +1,17 @@
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::ai;
-use crate::domain::{idle, portability, reports, summary, timer, timeutil};
+use crate::domain::{idle, machine_activity, portability, reports, summary, timer, timeutil};
 use crate::error::AppError;
 use crate::error::Result;
 use crate::models::{
     AiStatus, AiTestResult, AppSettings, AppStatus, AutoBackupStatus, BackupPreview, BackupResult,
     BulkDeleteResult, BulkEditPatch, BulkEditResult, BulkRestoreResult, Client, ClientInput,
     CreatedEntry, EntryFilter, EntryPage, EntryUpdateInput, ExportResult, IdleReview,
-    ManualEntryInput, PlatformInfo, Project, ProjectInput, RecoveryInfo, ReportFilter,
-    ReportResult, RestoreResult, SettingsPatch, SettingsUpdateResult, ShortcutStatus,
-    StartTimerInput, SummaryResult, Tag, TagInput, TaskTemplate, TemplateInput, TimeEntry,
-    Timesheet,
+    MachineActivityFilter, MachineActivityPage, MachineActivityStatus, ManualEntryInput,
+    PlatformInfo, Project, ProjectInput, RecoveryInfo, ReportFilter, ReportResult, RestoreResult,
+    SettingsPatch, SettingsUpdateResult, ShortcutStatus, StartTimerInput, SummaryResult, Tag,
+    TagInput, TaskTemplate, TemplateInput, TimeEntry, Timesheet,
 };
 use crate::platform;
 use crate::secrets;
@@ -545,6 +545,42 @@ pub fn export_report_csv(
     portability::export_csv(&db, &filter, &destination, now)
 }
 
+/* -------------------------- machine activity ----------------------------- */
+
+#[tauri::command]
+pub fn get_machine_activity_status(app: AppHandle) -> MachineActivityStatus {
+    app.state::<platform::session::Service>().status()
+}
+
+#[tauri::command]
+pub fn list_machine_activity(
+    state: State<'_, AppState>,
+    filter: MachineActivityFilter,
+) -> Result<MachineActivityPage> {
+    let db = state.db()?;
+    machine_activity::list(&db, &filter, timeutil::now_ms())
+}
+
+#[tauri::command]
+pub fn export_machine_activity_csv(
+    state: State<'_, AppState>,
+    filter: MachineActivityFilter,
+    destination: String,
+) -> Result<ExportResult> {
+    let db = state.db()?;
+    machine_activity::export_csv(&db, &filter, &destination, timeutil::now_ms())
+}
+
+#[tauri::command]
+pub fn clear_machine_activity(app: AppHandle, state: State<'_, AppState>) -> Result<usize> {
+    let count = {
+        let db = state.db()?;
+        machine_activity::clear(&db, timeutil::now_ms())?
+    };
+    let _ = app.emit("machine-activity-changed", ());
+    Ok(count)
+}
+
 /* ------------------------------ idle review ------------------------------ */
 
 #[tauri::command]
@@ -587,11 +623,17 @@ pub fn update_settings(
     let settings = {
         let db = state.db()?;
         let mut settings = repo_settings::load(&db)?;
+        let was_enabled = settings.machine_activity_enabled;
         repo_settings::apply_patch(&mut settings, &patch)?;
         if settings.shortcuts_enabled {
             platform::shortcuts::validate_settings(&settings)?;
         }
         repo_settings::save_all(&db, &settings)?;
+        if was_enabled != settings.machine_activity_enabled {
+            app.state::<platform::session::Service>()
+                .invalidate(settings.machine_activity_enabled);
+        }
+        machine_activity::prune(&db, timeutil::now_ms())?;
         settings
     };
     state.set_settings(settings.clone());
@@ -732,18 +774,19 @@ pub fn restore_backup(
     source: String,
 ) -> Result<RestoreResult> {
     // A restored dataset must never become visible through a link created for the old data.
-    use tauri::Manager;
     app.state::<tempodesk_sharing::SharingService>().stop();
     let now = timeutil::now_ms();
     let result = {
         let mut db = state.db()?;
-        portability::restore_backup(
+        let result = portability::restore_backup(
             &mut db,
             &source,
             &state.backups_dir(),
             state.app_version(),
             now,
-        )?
+        )?;
+        app.state::<platform::session::Service>().invalidate(false);
+        result
     };
     let settings = {
         let db = state.db()?;

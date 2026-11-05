@@ -1,5 +1,6 @@
 pub mod idle;
 pub mod menu;
+pub mod session;
 pub mod shortcuts;
 pub mod tray;
 pub mod window;

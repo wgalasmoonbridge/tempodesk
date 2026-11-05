@@ -277,6 +277,8 @@ export interface ExportResult {
 }
 
 export interface AppSettings {
+  machineActivityEnabled: boolean;
+  machineActivityRetentionDays: number;
   autoBackupEnabled: boolean;
   autoBackupDirectory: string;
   autoBackupRetention: number;
@@ -303,6 +305,8 @@ export interface AppSettings {
 }
 
 export interface SettingsPatch {
+  machineActivityEnabled?: boolean;
+  machineActivityRetentionDays?: number;
   autoBackupEnabled?: boolean;
   autoBackupDirectory?: string;
   autoBackupRetention?: number;
@@ -331,6 +335,57 @@ export interface SettingsPatch {
 export interface SettingsUpdateResult {
   settings: AppSettings;
   warnings: string[];
+}
+
+export interface MachineSession {
+  accountId: string;
+  userName: string;
+  domain: string | null;
+  machineName: string;
+  sessionId: string | null;
+  loginAtUtc: number | null;
+  locked: boolean | null;
+  active: boolean | null;
+}
+
+export interface MachineCapability {
+  feature: "identity" | "login_time" | "lock" | "session";
+  status: "available" | "unsupported" | "permission_required" | "unavailable" | "disabled";
+  detail: string;
+}
+
+export interface MachineActivityStatus {
+  enabled: boolean;
+  currentSession: MachineSession | null;
+  capabilities: MachineCapability[];
+  lastObservedAtUtc: number | null;
+  error: string | null;
+}
+
+export interface MachineActivityEvent {
+  id: string;
+  accountId: string;
+  userName: string;
+  domain: string | null;
+  machineName: string;
+  sessionId: string | null;
+  kind: "login" | "session_observed" | "lock" | "unlock" | "session_active" | "session_inactive" | "logoff";
+  eventAtUtc: number;
+  observedAtUtc: number;
+  source: string;
+  timing: "os_reported" | "notification" | "sampled" | "observed";
+}
+
+export interface MachineActivityFilter {
+  fromUtc?: number;
+  toUtc?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export interface MachineActivityPage {
+  events: MachineActivityEvent[];
+  totalCount: number;
 }
 
 export type DataProfile = "production" | "development" | "test";

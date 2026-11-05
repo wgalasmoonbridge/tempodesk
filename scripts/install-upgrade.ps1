@@ -1,9 +1,9 @@
 # Upgrade the existing per-user installation with independently verified record preservation.
-param([string]$ResumeBackup = '')
+param([string]$ResumeBackup = '', [ValidateRange(1, 100000)][int]$ExpectedSchema = 3)
 $ErrorActionPreference = 'Stop'
 $workspacePath = Split-Path -Parent $PSScriptRoot
-$expectedVersion = '0.4.0'
 Set-Location -LiteralPath $workspacePath
+$expectedVersion = (Get-Content -LiteralPath (Join-Path $workspacePath 'src-tauri\tauri.conf.json') -Raw | ConvertFrom-Json).version
 $installedPath = Join-Path $env:LOCALAPPDATA 'TempoDesk\tempodesk.exe'
 $productionDatabasePath = Join-Path $env:APPDATA 'com.tempodesk.desktop\tempodesk.db'
 $releasePath = Join-Path $workspacePath 'src-tauri\target\release\tempodesk.exe'
@@ -15,6 +15,7 @@ if ((Get-Item -LiteralPath $releasePath).VersionInfo.ProductVersion -ne $expecte
     throw 'Refusing to install an unexpected release version.'
 }
 $installerExitCode = 0
+$previousVersion = (Get-Item -LiteralPath $installedPath).VersionInfo.ProductVersion
 if (-not $ResumeBackup) {
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $liveBackupPath = Join-Path $workspacePath ".upgrade-backups\before-stop-$stamp"
@@ -43,9 +44,9 @@ $manifestPath = Join-Path $finalBackupPath 'records.json'
 & node (Join-Path $PSScriptRoot 'upgrade-records.mjs') trial-copy $snapshotPath $manifestPath
 if ($LASTEXITCODE -ne 0) { throw 'Migration trial copy failed.' }
 $migrationPath = Join-Path $finalBackupPath 'migration-trial.db'
-& cargo run --quiet --manifest-path (Join-Path $workspacePath 'core\Cargo.toml') --example upgrade_guard -- $migrationPath
+& cargo run --quiet --manifest-path (Join-Path $workspacePath 'core\Cargo.toml') --example upgrade_guard -- $migrationPath $previousVersion
 if ($LASTEXITCODE -ne 0) { throw 'Migration rehearsal failed. Program files have not been changed.' }
-& node (Join-Path $PSScriptRoot 'upgrade-records.mjs') verify $migrationPath $manifestPath
+& node (Join-Path $PSScriptRoot 'upgrade-records.mjs') verify $migrationPath $manifestPath "--wait-for-schema=$ExpectedSchema"
 if ($LASTEXITCODE -ne 0) { throw 'Migration rehearsal changed a record. Program files have not been changed.' }
 
 # NSIS /UPDATE bypasses uninstall and app-data removal. /S avoids installer prompts.
@@ -70,13 +71,15 @@ if ($installedVersion -ne $expectedVersion) { throw 'Installed program version i
 if ($LASTEXITCODE -ne 0) { throw 'Records changed during installation. Backups have been retained.' }
 
 $updatedProcess = Start-Process -FilePath $installedPath -WindowStyle Hidden -PassThru
-& node (Join-Path $PSScriptRoot 'upgrade-records.mjs') verify $productionDatabasePath $manifestPath --wait-for-schema=2
+& node (Join-Path $PSScriptRoot 'upgrade-records.mjs') verify $productionDatabasePath $manifestPath "--wait-for-schema=$ExpectedSchema"
 if ($LASTEXITCODE -ne 0) { throw 'Post-launch preservation check failed. Backups have been retained.' }
 if (-not (Get-Process -Id $updatedProcess.Id -ErrorAction SilentlyContinue)) { throw 'Updated app exited unexpectedly.' }
 $verification = @{
     installedVersion = $installedVersion
+    schema = $ExpectedSchema
     installedPath = $installedPath
     sha256 = $installedHash
+    installerSha256 = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash
     installerExitCode = $installerExitCode
     processId = $updatedProcess.Id
     backupPath = $finalBackupPath

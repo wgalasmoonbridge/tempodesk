@@ -1,7 +1,8 @@
 # TempoDesk
 
 **Private, local-first desktop time tracking.** TempoDesk is a Tauri 2 desktop app for Windows and
-macOS with one running timer, manual entries, projects/clients/tags, a weekly timesheet, a visual
+macOS, with experimental Linux builds. It provides one running timer, manual entries,
+projects/clients/tags, a weekly timesheet, a visual
 calendar, reports, CSV export, native tray/menu-bar controls, global shortcuts, opt-in idle review, and local
 backup/restore. No account or telemetry. Optional network features are user-triggered AI summaries
 using your own Gemini API key and live report links that you explicitly create and control.
@@ -16,14 +17,16 @@ build succeeds in GitHub Actions, but macOS runtime behavior is **not tested** o
 The first P1 feature, a visual day/week calendar timeline, is implemented. Pomodoro,
 foreground-app auto-tracking, PDF/XLSX, rates, and sync have not been started.
 
-- 57 core Rust tests, 6 sharing Rust tests, 29 TypeScript/Vitest tests and 4 shared-viewer tests.
+- 66 core Rust tests, 4 Windows desktop Rust tests, 6 sharing Rust tests, 34 TypeScript/Vitest tests
+  and 4 shared-viewer tests.
 - Real UI flows verified through WebView2 DevTools automation (create project, timer, manual
   entries, edit/delete/undo, overnight validation, tags/clients/projects, timesheet cell editor,
   calendar drag-to-create/edit and day/week switching, reports filters, backup/restore, CSV totals,
   idle review, crash recovery, quit policies,
   close-to-tray, single instance, themes, responsive 860px layout).
-- NSIS installer built and installed per-user; installed app launches and writes to the OS
-  app-data directory.
+- Local Windows **0.5.0** NSIS update installed over 0.4.0; all existing records and the active
+  timer were verified preserved. Machine activity is available under Settings and stays opt-in.
+  This local build has not been published as a GitHub release.
 - 10,000-entry report benchmark: ~109 ms in a debug build, totals exact.
 
 ## Host / toolchain note (material deviation)
@@ -46,7 +49,7 @@ A public release should build with the MSVC toolchain and be signed. The GNU lin
 
 ## Quick start (development)
 
-Prerequisites: Node 20+, Rust 1.85+, WebView2 (Windows), and a C toolchain. On Windows the supported
+Prerequisites: Node 20+, Rust 1.87+, WebView2 (Windows), and a C toolchain. On Windows the supported
 setup is Visual Studio Build Tools (MSVC) + Rust `x86_64-pc-windows-msvc`. For this host's GNU setup,
 ensure MinGW `gcc`/`windres` and `cargo` are on `PATH`.
 
@@ -61,6 +64,7 @@ Useful commands:
 npm run build              # TypeScript typecheck + Vite production bundle
 npm run test               # Vitest (time math, validation, formatting)
 npm run test:rust          # Rust core tests
+npm run test:desktop       # native adapter/cache tests (does not lock the machine)
 npm run check              # typecheck + lint + Vitest + core tests + clippy + cargo check
 npm run smoke              # launch debug build against an isolated test DB
 npm run build:test         # debug build using the TempoDesk Dev identifier (for UI tests)
@@ -70,7 +74,7 @@ npm run tauri:build        # production build + installer for the host
 The installer for this verified Windows build is at:
 
 ```text
-src-tauri/target/release/bundle/nsis/TempoDesk_0.4.0_x64-setup.exe
+src-tauri/target/release/bundle/nsis/TempoDesk_0.5.0_x64-setup.exe
 ```
 
 It installs per-user (no admin prompt) to `%LOCALAPPDATA%\TempoDesk`. The installer is unsigned;
@@ -102,7 +106,7 @@ TempoDesk deliberately separates production, development, and test profiles:
 
 ## Five-minute demonstration (M1 checkpoint)
 
-1. **Launch** `TempoDesk_0.4.0_x64-setup.exe` (or `npm run tauri:dev`). The first-run onboarding
+1. **Launch** `TempoDesk_0.5.0_x64-setup.exe` (or `npm run tauri:dev`). The first-run onboarding
    appears (three steps, skippable) and the local SQLite database is created immediately.
 2. **Create a project**: *Projects → New project*, name it, choose a color, optionally a client,
    save. It appears in the start-session project selector.
@@ -168,6 +172,10 @@ in `%APPDATA%\com.tempodesk.desktop` unless you delete it.
   optional launch at login, single instance.
 - **Idle review**: off by default; Windows `GetLastInputInfo` / macOS CoreGraphics aggregate idle
   time; one event per episode; Keep / Remove gap (split) / End at idle start; no auto-deletion.
+- **Machine activity**: opt-in current OS account/machine details, OS-reported login time where
+  available, supported session events, paginated/date-filtered history, CSV, retention, and clear.
+  Windows, macOS, and Linux adapters report capability gaps explicitly; no work timers are changed.
+  Activity is excluded from reports, sharing, AI, and portable backups. See [OS coverage](docs/MACHINE_ACTIVITY.md).
 - **Tracking reminders**: off by default; one native notification (with an in-app toast fallback)
   per "not tracking" episode after a configurable 5–480 minute delay. Starting a timer re-arms it.
 - **Data**: versioned migrations, WAL, foreign keys, partial unique index enforcing one active
@@ -214,11 +222,12 @@ scripts/                  # launch smoke + WebView2 CDP UI verification scripts
 `get_timesheet`, `get_report`, `export_report_csv`, idle review list/resolve,
 `get/update_settings`, `save_backup`, `preview_restore`, `restore_backup`, `quit_app`,
 `get_platform_info`, `get_shortcut_status`, `get_ai_status`, `set_ai_api_key`,
-`delete_ai_api_key`, `test_ai_connection`, `generate_summary`.
+`delete_ai_api_key`, `test_ai_connection`, `generate_summary`, `get_machine_activity_status`,
+`list_machine_activity`, `export_machine_activity_csv`, `clear_machine_activity`.
 
 Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-changed`,
 `idle-review-required`, `shortcut-status`, `window-focused`, `quit-requested`, `navigate`,
-`new-entry`, `focus-search`, `show-shortcuts`, `app-error`.
+`new-entry`, `focus-search`, `show-shortcuts`, `app-error`, `machine-activity-changed`.
 
 ## Data & privacy
 
@@ -236,6 +245,10 @@ Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-chan
   Links are temporary, scoped to fixed filters, and can be replaced. See [sharing/README.md](sharing/README.md).
 - No analytics, accounts, cloud sync, screenshots/keystrokes/URLs/window titles. Idle detection is
   opt-in, local-only, and only reads the OS aggregate idle duration.
+- Machine activity logging is separately opt-in and local-only. It reads this OS account's identity
+  and supported session metadata, never passwords or other users' history. Its ledger and consent
+  are excluded from all portable backups, AI, reports, and sharing. Restore disables logging while
+  preserving the device-local ledger and retention preference. See [machine activity](docs/MACHINE_ACTIVITY.md).
 - Backups are plain-text JSON and can contain sensitive work/client names — store them privately.
 - Backup format v2 includes task templates and can restore older v1 files. Automatic-backup enablement
   and folder paths are device-specific and excluded from backups; restore leaves scheduling off.
@@ -256,6 +269,7 @@ Events: `timer-state-changed`, `entries-changed`, `data-changed`, `settings-chan
 | Close window to tray | On |
 | Launch at login | Off |
 | Idle detection | Off, 5-minute threshold when enabled |
+| Machine activity | Off; 30-day retention when enabled |
 | Tracking reminder | Off, 30-minute delay when enabled |
 | AI summaries | Off; Gemini; model `gemini-2.5-flash`; descriptions included only after consent |
 | Open/hide shortcut | `CommandOrControl+Shift+T` |
@@ -283,6 +297,10 @@ offers the local summary.
 - **macOS runtime behavior is unverified** on this host (no macOS hardware). The Intel app/DMG
   builds successfully in GitHub Actions; follow the runtime checklist in
   [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SUPPORT.md).
+- **Machine activity coverage varies by OS**: macOS screen-lock events are explicitly unsupported;
+  Linux lock hints depend on the desktop and are sampled. macOS/Linux runtime and new Linux/Apple
+  Silicon packaging remain unverified on this Windows host. Native CI/build matrices are configured;
+  see [docs/MACHINE_ACTIVITY.md](docs/MACHINE_ACTIVITY.md) for the exact scope and manual checks.
 - **Live Gemini calls are unverified** without a real API key. Local summaries, consent gating,
   prompt construction, response parsing, and OS credential-store round trips are tested.
 - **Global hotkeys could not be exercised by synthetic input** in the automation session. The
@@ -314,6 +332,7 @@ npx vite site
 - [docs/architecture.md](docs/architecture.md) — data model, time math, IPC, platform behavior.
 - [docs/TEST_REPORT.md](docs/TEST_REPORT.md) — commands, results, evidence, untested items.
 - [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SUPPORT.md) — verified/unsupported features per OS.
+- [docs/MACHINE_ACTIVITY.md](docs/MACHINE_ACTIVITY.md) — opt-in account/login history and OS limitations.
 - [scripts/README.md](scripts/README.md) — how to rerun the WebView2 UI verification suite.
 
 ## License

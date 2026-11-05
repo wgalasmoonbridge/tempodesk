@@ -43,6 +43,7 @@ pub fn run() {
             let state = AppState::bootstrap(data_dir, app.package_info().version.to_string())?;
             let is_dev = !state.is_production();
             app.manage(state);
+            app.manage(platform::session::Service::default());
             app.manage(tempodesk_sharing::SharingService::default());
 
             let start_hidden = std::env::args().any(|arg| arg == "--autostart");
@@ -73,6 +74,7 @@ pub fn run() {
                 log::warn!("{warning}");
             }
             platform::idle::spawn(handle.clone());
+            platform::session::spawn(handle.clone());
             backups::spawn(handle.clone());
             Ok(())
         })
@@ -133,6 +135,10 @@ pub fn run() {
             sharing::stop_sharing,
             sharing::rotate_sharing_link,
             commands::export_report_csv,
+            commands::get_machine_activity_status,
+            commands::list_machine_activity,
+            commands::export_machine_activity_csv,
+            commands::clear_machine_activity,
             commands::get_pending_idle_reviews,
             commands::resolve_idle_review,
             commands::get_settings,
@@ -152,6 +158,7 @@ pub fn run() {
         .expect("failed to build TempoDesk")
         .run(|app, event| {
             if let RunEvent::Exit = event {
+                app.state::<platform::session::Service>().stop();
                 app.state::<tempodesk_sharing::SharingService>().stop();
                 platform::window::mark_clean_exit(app);
             }

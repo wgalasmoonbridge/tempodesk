@@ -2468,6 +2468,20 @@ button {
 .history-pagination { margin: 14px 0 24px; }
 .auto-backup-panel { margin-bottom: 16px; }
 .auto-backup-panel .mono { overflow-wrap: anywhere; }
+/* Device-local machine activity */
+.machine-session-details { display: grid; grid-template-columns: minmax(100px, 140px) minmax(0, 1fr); gap: 9px 16px; font-size: 12.5px; }
+.machine-session-details dt { color: var(--text-soft); }
+.machine-session-details dd { margin: 0; overflow-wrap: anywhere; }
+.machine-capability + .machine-capability { margin-top: 14px; }
+.machine-capability strong { font-size: 12.5px; }
+.machine-capability .badge { margin-left: 6px; }
+.machine-activity-filters, .machine-activity-pagination { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+.machine-activity-filters label { display: grid; gap: 5px; font-size: 12px; }
+.machine-activity-pagination { align-items: center; }
+.machine-activity-pagination > span { margin-right: auto; }
+.machine-activity-table { min-width: 620px; }
+.machine-activity-table td { white-space: normal; overflow-wrap: anywhere; }
+.machine-activity-table small { display: block; color: var(--text-soft); margin-top: 5px; }
 /* Live report sharing */
 .sharing-banner { display:flex; align-items:center; gap:12px; margin-bottom:20px; padding:12px 16px; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
 .sharing-banner > span { flex:1; min-width:0; }

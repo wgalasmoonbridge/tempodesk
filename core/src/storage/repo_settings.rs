@@ -27,6 +27,8 @@ pub fn load(conn: &Connection) -> Result<AppSettings> {
 }
 
 fn normalize_loaded(settings: &mut AppSettings) {
+    settings.machine_activity_retention_days =
+        settings.machine_activity_retention_days.clamp(1, 365);
     settings.auto_backup_retention = settings.auto_backup_retention.clamp(1, 90);
     if !settings.auto_backup_directory.is_empty()
         && !std::path::Path::new(&settings.auto_backup_directory).is_absolute()
@@ -88,6 +90,15 @@ pub fn save_all(conn: &Connection, settings: &AppSettings) -> Result<()> {
 }
 
 pub fn apply_patch(settings: &mut AppSettings, patch: &SettingsPatch) -> Result<()> {
+    if let Some(value) = patch.machine_activity_enabled {
+        settings.machine_activity_enabled = value;
+    }
+    if let Some(value) = patch.machine_activity_retention_days {
+        if !(1..=365).contains(&value) {
+            return Err(AppError::validation("Keep machine activity for 1–365 days"));
+        }
+        settings.machine_activity_retention_days = value;
+    }
     if let Some(value) = patch.auto_backup_enabled {
         settings.auto_backup_enabled = value;
     }

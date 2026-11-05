@@ -10,6 +10,10 @@ use crate::timeutil;
 const MIGRATIONS: &[(i64, &str)] = &[
     (1, include_str!("../../migrations/0001_init.sql")),
     (2, include_str!("../../migrations/0002_workflows.sql")),
+    (
+        3,
+        include_str!("../../migrations/0003_machine_activity.sql"),
+    ),
 ];
 
 /// Open the app database, creating directories/privacy-friendly file if needed.
@@ -94,7 +98,7 @@ mod tests {
         let version: i64 = conn
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(version, 2);
+        assert_eq!(version, 3);
         let fk: i64 = conn
             .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
             .unwrap();
@@ -125,6 +129,53 @@ mod tests {
             )
             .unwrap();
         assert_eq!(description, "Existing work");
+        assert_eq!(integrity_check(&conn).unwrap(), "ok");
+    }
+
+    #[test]
+    fn upgrades_version_two_without_changing_timers_or_saved_tasks() {
+        let conn = Connection::open_in_memory().unwrap();
+        configure(&conn).unwrap();
+        conn.execute_batch(MIGRATIONS[0].1).unwrap();
+        conn.execute_batch(MIGRATIONS[1].1).unwrap();
+        conn.execute_batch("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at_utc INTEGER NOT NULL); INSERT INTO schema_migrations VALUES (1, 1000), (2, 1000); PRAGMA user_version = 2;").unwrap();
+        conn.execute("INSERT INTO time_entries (id, description, start_at_utc, source, created_at_utc, updated_at_utc) VALUES ('active', 'Still running', 1000, 'timer', 1000, 1000)", []).unwrap();
+        conn.execute(
+            "INSERT INTO task_templates (id, name) VALUES ('task', 'Saved work')",
+            [],
+        )
+        .unwrap();
+        migrate(&conn).unwrap();
+        migrate(&conn).unwrap();
+        assert_eq!(
+            conn.query_row(
+                "SELECT COUNT(*) FROM time_entries WHERE id = 'active' AND end_at_utc IS NULL",
+                [],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+            1
+        );
+        assert_eq!(
+            conn.query_row(
+                "SELECT name FROM task_templates WHERE id = 'task'",
+                [],
+                |row| row.get::<_, String>(0)
+            )
+            .unwrap(),
+            "Saved work"
+        );
+        assert_eq!(
+            conn.query_row("SELECT COUNT(*) FROM machine_activity", [], |row| row
+                .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+        assert!(
+            !crate::storage::repo_settings::load(&conn)
+                .unwrap()
+                .machine_activity_enabled
+        );
         assert_eq!(integrity_check(&conn).unwrap(), "ok");
     }
 

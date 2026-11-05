@@ -65,6 +65,25 @@ node scripts/ui-capture.mjs     # screenshots
 Some scripts quit the test app at the end (for example `ui-bulk-delete`). Use the launcher again
 for a fresh run.
 
+## Machine activity (fresh isolated profile)
+
+Run separately from the ordered suite, starting with a fresh test profile and no active timer:
+
+```bash
+npm run build:test
+node scripts/launch-test-app.mjs
+node scripts/ui-machine-activity.mjs
+node scripts/stop-test-app.mjs
+npm run test:desktop
+```
+
+This checks consent/cancel, the real Windows account query, OS login vs observation timestamps,
+retention, timer isolation, backup exclusion, CSV, login deduplication, clear suppression, and opt-out.
+It never physically locks the machine. Its screenshot contains identity information and stays in
+`.test-data/machine-activity.png`, not the public documentation. Stop the test app **before** rebuilding
+or running desktop Rust tests on Windows to avoid executable/resource file locks. The installed app
+can remain open. `test:desktop` uses a test-only Common Controls manifest on Windows.
+
 ## Recovery / quit policies
 
 These require killing and relaunching the test process while keeping its data:
@@ -109,7 +128,11 @@ It rehearses migrations against a workspace copy using `core/examples/upgrade_gu
 app-readable JSON backup, applies NSIS `/S /UPDATE`, verifies installed executable/version hashes,
 and checks every pre-existing row before and after launch, including templates, undo and idle-review records. Source database inspection is read-only.
 The active timer is preserved for the recovery flow. Backup artifacts live in git-ignored
-`.upgrade-backups/`; the upgrade script is intentionally pinned to release 0.4.0.
+`.upgrade-backups/`. The upgrade script derives the expected app version from `src-tauri/tauri.conf.json`
+  and defaults to schema 3. Its row-fingerprint checks include machine activity when that table already
+  exists. Migration-trial JSON backups record the previous installed app version. Do not run an
+  installed-app update without explicit authorization; it restarts the installed process while keeping
+  any active timer persisted.
 
 - Time zone: `America/Chicago` is used in a few scripts to read the current date.
 - Overnight test date: `2026-10-27` (host clock is 2026-10-28).
@@ -125,6 +148,7 @@ The active timer is preserved for the recovery flow. Backup artifacts live in gi
 
 ## Notes
 
-- Screenshots are written to `docs/screenshots/`.
+- Most screenshots are written to `docs/screenshots/`. Machine-activity screenshots instead stay
+  under git-ignored `.test-data/` because they contain account/device identity.
 - `cdp-lib.mjs` contains the small CDP client (evaluate, click by text/aria, type, select, wait,
   screenshot) and the production-profile guard.

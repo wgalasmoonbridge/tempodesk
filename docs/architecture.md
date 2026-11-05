@@ -15,6 +15,7 @@ tempodesk-core (core/)  ← no Tauri dependency, unit/integration tested
    ├── domain::bulk         transactional metadata edits, conflict-aware undo snapshots
    ├── domain::auto_backup  snapshot schedule, status, safe retention
    ├── domain::idle         keep/exclude/stop-at-idle review resolution
+   ├── domain::machine_activity  consent, session baselines, local history, retention, CSV
    ├── domain::reports      timesheet + report aggregation + CSV
    ├── domain::summary      local summary, AI prompt, Gemini response parsing
    ├── domain::portability  versioned JSON backup / validated restore
@@ -38,9 +39,19 @@ Platform integrations are isolated in `src-tauri/src/platform/`:
 | `shortcuts.rs` | Global shortcut registration, collision/error reporting, toggle handler |
 | `window.rs` | Show/focus, close-to-tray, quit policy, clean-exit marker |
 | `idle.rs` | OS idle API, 5s monitor loop, heartbeat, sleep/clock-gap review creation, notifications |
+| `session/` | Opt-in Windows/macOS/Linux account/session adapters, capability diagnostics, native notifications/sampled state |
 | `mod.rs` | Autostart synchronization |
 
 ## 2. Database
+
+Migration `0003_machine_activity.sql` adds a device-local ledger without altering timers or metadata.
+It stores account/session identity, event and observation timestamps, source, timing classification,
+and a unique login-event key. Native records never enter time reports, sharing projections, AI
+summaries, or portable backups. Login deduplication persists across restart. Retention defaults to
+30 days (1–365), enforced on startup/hourly and before history/export reads, even with logging off.
+Clear-history writes a runtime cutoff so queued events and old login timestamps are not re-imported.
+Portable restore preserves this local ledger, retention preference, and clear cutoff, but turns off
+monitoring regardless of imported settings. See [MACHINE_ACTIVITY.md](MACHINE_ACTIVITY.md).
 
 Migration `0002_workflows.sql` adds `task_templates` and `bulk_edit_undo` without modifying existing
 entries. Templates store validated metadata, with project foreign keys and a JSON tag-ID list.
@@ -154,6 +165,16 @@ data.
 - No auto-deletion exists. Notifications are best-effort; the in-app banner is always present.
 
 ## 6. Settings
+
+Machine activity is disabled by default and requires an explicit Settings confirmation. The worker
+owns native subscriptions and only reads identity while enabled. A generation counter invalidates
+in-flight observations on opt-out/restore; durable consent is rechecked under the database lock
+before a batch is saved. Cached identity is immediately removed on opt-out. Unknown states and
+monitoring gaps reset transition baselines rather than fabricating login/lock events.
+Windows uses WTS notifications and token identity; macOS uses matching console records and public
+NSWorkspace activation notifications (no private screen-lock hooks); Linux reads logind/elogind
+properties with UID validation and bounded D-Bus method timeouts. Capabilities and timestamp
+precision are explicit. Native failures do not block or alter the work timer.
 
 Settings are typed (`AppSettings`) and stored one JSON value per key in `app_settings`. Loading merges
 defaults, normalizes invalid stored values, then exposes them to the UI. Updates are validated

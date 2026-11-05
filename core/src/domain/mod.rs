@@ -1,6 +1,7 @@
 pub mod auto_backup;
 pub mod bulk;
 pub mod idle;
+pub mod machine_activity;
 pub mod portability;
 pub mod reports;
 pub mod summary;

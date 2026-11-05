@@ -28,6 +28,8 @@ import { useAppliedTheme } from "./theme";
 import { useToast } from "../components/Toast";
 
 const DEFAULT_SETTINGS: AppSettings = {
+  machineActivityEnabled: false,
+  machineActivityRetentionDays: 30,
   autoBackupEnabled: false,
   autoBackupDirectory: "",
   autoBackupRetention: 14,

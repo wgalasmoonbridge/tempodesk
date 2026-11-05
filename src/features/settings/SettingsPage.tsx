@@ -40,6 +40,7 @@ import type {
 } from "../../lib/types";
 import { formatShortcut } from "../../lib/time";
 import { AutoBackupPanel } from "./AutoBackupPanel";
+import { MachineActivityPanel } from "./MachineActivityPanel";
 
 type Section =
   | "general"
@@ -47,6 +48,7 @@ type Section =
   | "desktop"
   | "shortcuts"
   | "idle"
+  | "machine"
   | "reminders"
   | "ai"
   | "data"
@@ -59,6 +61,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Timer }[] = [
   { id: "desktop", label: "Tray & startup", icon: Laptop },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "idle", label: "Idle detection", icon: Bell },
+  { id: "machine", label: "Machine activity", icon: Monitor },
   { id: "reminders", label: "Reminders", icon: BellRing },
   { id: "ai", label: "AI summaries", icon: Sparkles },
   { id: "data", label: "Data & backup", icon: Database },
@@ -789,6 +792,8 @@ export function SettingsPage({ onOpenShortcuts }: { onOpenShortcuts: () => void 
               </div>
             </div>
           ) : null}
+
+          {section === "machine" ? <MachineActivityPanel /> : null}
 
           {section === "reminders" ? (
             <div className="settings-section">

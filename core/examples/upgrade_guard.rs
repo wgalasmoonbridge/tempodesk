@@ -2,9 +2,11 @@
 use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let raw = std::env::args()
-        .nth(1)
-        .ok_or("Expected a migration-trial.db path")?;
+    let mut args = std::env::args().skip(1);
+    let raw = args.next().ok_or("Expected a migration-trial.db path")?;
+    let app_version = args
+        .next()
+        .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
     let path = PathBuf::from(raw).canonicalize()?;
     let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -22,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let result = tempodesk_core::domain::portability::create_backup(
         &conn,
         json.to_str().ok_or("Invalid backup path")?,
-        env!("CARGO_PKG_VERSION"),
+        &app_version,
         tempodesk_core::timeutil::now_ms(),
     )?;
     println!("{}", serde_json::to_string(&result)?);

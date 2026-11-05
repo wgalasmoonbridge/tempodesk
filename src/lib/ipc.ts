@@ -23,6 +23,9 @@ import type {
   IdleAction,
   IdleReview,
   ManualEntryInput,
+  MachineActivityFilter,
+  MachineActivityPage,
+  MachineActivityStatus,
   PlatformInfo,
   Project,
   ProjectInput,
@@ -118,6 +121,13 @@ export const api = {
   rotateSharingLink: () => call<SharingStatus>("rotate_sharing_link"),
   exportReportCsv: (filter: ReportFilter, destination: string) =>
     call<ExportResult>("export_report_csv", { filter, destination }),
+
+  getMachineActivityStatus: () => call<MachineActivityStatus>("get_machine_activity_status"),
+  listMachineActivity: (filter: MachineActivityFilter) =>
+    call<MachineActivityPage>("list_machine_activity", { filter }),
+  exportMachineActivityCsv: (filter: MachineActivityFilter, destination: string) =>
+    call<ExportResult>("export_machine_activity_csv", { filter, destination }),
+  clearMachineActivity: () => call<number>("clear_machine_activity"),
 
   getPendingIdleReviews: () =>
     call<IdleReview[]>("get_pending_idle_reviews"),
