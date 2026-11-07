@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0d18" />
+    <meta name="description" content="How TempoDesk stores your data locally and handles optional AI summaries, live sharing, and activity logging." />
+    <link rel="canonical" href="https://wgalasmoonbridge.github.io/tempodesk/privacy.html" />
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Privacy — TempoDesk</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header" data-header>
+      <div class="shell nav-shell">
+        <a class="brand" href="index.html" aria-label="TempoDesk home">
+          <img src="assets/logo.svg" alt="" width="36" height="36" />
+          <span><strong>TempoDesk</strong><small>Local time tracking</small></span>
+        </a>
+        <button class="menu-toggle" type="button" aria-label="Open navigation"
+          aria-expanded="false" aria-controls="site-nav" data-menu-toggle>
+          <span></span><span></span><span></span>
+        </button>
+        <nav id="site-nav" class="site-nav" aria-label="Primary navigation" data-nav>
+          <a href="index.html">Home</a>
+          <a href="privacy.html" aria-current="page">Privacy</a>
+          <a href="index.html#download">Download</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="section">
+      <article class="shell privacy-document">
+        <span class="eyebrow">Local-first by design</span>
+        <h1>Privacy</h1>
+        <p>TempoDesk keeps your time tracking data on your device. Core tracking, reports,
+          calendar, exports, and backups work offline, without an account.</p>
+
+        <h2>Your local data</h2>
+        <p>Your entries, projects, clients, and settings are stored in a SQLite database in
+          your operating system's application data directory. TempoDesk has no analytics,
+          telemetry, accounts, or cloud sync.</p>
+
+        <h2>Optional AI summaries</h2>
+        <p>Local summaries stay on your device. If you choose to generate an AI summary,
+          TempoDesk sends aggregated timesheet data for the selected range to Google Gemini
+          using your API key. Task descriptions are included only if you enable them.</p>
+
+        <h2>Optional live report sharing</h2>
+        <p>Creating a live sharing link downloads a verified Cloudflare helper and sends
+          your approved report through its tunnel. Sharing uses a read-only connection and
+          only exposes the selected report data with fixed filters. Links are temporary
+          and can be replaced. Requests stop when you stop sharing, the link expires, you
+          quit TempoDesk, or you restore a backup.</p>
+
+        <h2>Idle detection and machine activity</h2>
+        <p>Idle detection is opt-in and local-only. It reads only the operating system's
+          aggregate idle duration. TempoDesk does not capture screenshots, keystrokes,
+          URLs, or window titles.</p>
+        <p>Machine activity logging is separately opt-in and local-only. It reads your OS
+          account identity and supported session metadata, never passwords or other users'
+          history. This ledger and its consent are excluded from portable backups, AI
+          summaries, reports, and sharing. Restoring a backup disables logging while
+          preserving the device-local ledger and retention preference.</p>
+
+        <h2>Exports, backups, and deletion</h2>
+        <p>CSV exports and plain-text JSON backups can contain sensitive work and client
+          names. Store these files privately. TempoDesk does not upload backups; if you
+          choose a folder managed by another sync service, that service controls its copies.</p>
+        <p>To remove your tracking database, close TempoDesk and delete the database file
+          at the location shown in Settings. Save a backup first if you may need your data.
+          Exported files and backups remain wherever you saved them.</p>
+
+        <h2>More information</h2>
+        <p>See the
+          <a class="text-link" href="https://github.com/wgalasmoonbridge/tempodesk#data--privacy">data and privacy documentation</a>
+          for storage locations and implementation details, or
+          <a class="text-link" href="https://github.com/wgalasmoonbridge/tempodesk/issues">open an issue</a>
+          with a question.</p>
+        <a class="text-link" href="index.html">Back to TempoDesk <span aria-hidden="true">→</span></a>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-grid">
+        <div class="footer-brand">
+          <img src="assets/logo.svg" alt="" width="34" height="34" />
+          <div><strong>TempoDesk</strong><span>Time tracking that stays yours.</span></div>
+        </div>
+        <div class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="privacy.html" aria-current="page">Privacy</a>
+        </div>
+        <p>© <span data-year></span> TempoDesk. Built for focused, private work.</p>
+      </div>
+    </footer>
+    <script src="script.js" defer></script>
+  </body>
+</html>

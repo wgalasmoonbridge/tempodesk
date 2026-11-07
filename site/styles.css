@@ -26,6 +26,26 @@
   --font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+.privacy-document {
+  max-width: 800px;
+  padding-top: 64px;
+}
+
+.privacy-document h1 {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 1.15;
+  margin: 16px 0 24px;
+}
+
+.privacy-document h2 {
+  margin: 40px 0 12px;
+  font-size: 1.4rem;
+}
+
+.privacy-document p {
+  color: var(--text-soft);
+}
+
 *,
 *::before,
 *::after {
