@@ -35,6 +35,7 @@ import { QuitDialog } from "../features/settings/QuitDialog";
 import { ShortcutsDialog } from "../features/settings/ShortcutsDialog";
 import { formatDateLong, todayKey } from "../lib/time";
 import { SharingBanner } from "../features/sharing/SharingProvider";
+import { version } from "../../package.json";
 
 const NAV_ITEMS: { route: Route; label: string; icon: typeof Timer; group: string }[] = [
   { route: "tracker", label: "Time Tracker", icon: Timer, group: "Track" },
@@ -228,8 +229,9 @@ export function App() {
 
         <main className="main">
           <header className="header">
-            <div className="header-title" aria-hidden="true">
+            <div className="header-title">
               TempoDesk
+              <span className="header-version">Version {version}</span>
             </div>
             <div className="header-search">
               <Search size={14} aria-hidden="true" />
