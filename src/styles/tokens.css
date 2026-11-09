@@ -35,6 +35,9 @@
   --accent-hover: #4338ca;
   --accent-soft: #eceafe;
   --accent-text: #ffffff;
+  --button-primary: #166534;
+  --button-primary-hover: #14532d;
+  --button-primary-text: #ffffff;
   --teal: #0f766e;
   --teal-soft: #dcf5f1;
   --danger: #b42318;
@@ -71,6 +74,9 @@
   --accent-hover: #a29dff;
   --accent-soft: #2a2850;
   --accent-text: #14121f;
+  --button-primary: #7ee2a8;
+  --button-primary-hover: #a7f3c5;
+  --button-primary-text: #122419;
   --teal: #5eead4;
   --teal-soft: #133b38;
   --danger: #ff8a80;
