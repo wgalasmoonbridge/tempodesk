@@ -352,14 +352,14 @@ button {
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: var(--button-primary);
   border-color: transparent;
-  color: var(--accent-text);
+  color: var(--button-primary-text);
   box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
-  background: var(--accent-hover);
+  background: var(--button-primary-hover);
 }
 
 .btn-primary.create-tag-button {
