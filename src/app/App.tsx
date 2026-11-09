@@ -162,7 +162,12 @@ export function App() {
       <div className="app">
         <aside className="sidebar" aria-label="Main navigation">
           <div className="brand">
-            <div className="brand-mark" aria-hidden="true" />
+            <svg className="brand-mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" focusable="false">
+              <rect width="32" height="32" rx="9" fill="#4f46e5" />
+              <circle cx="16" cy="16" r="10" fill="none" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="2.5" />
+              <path d="M16 6 A10 10 0 0 1 26 16" fill="none" stroke="#5eead4" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M16 10 V16 L21 19" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             <div className="brand-text">
               <div className="brand-name">TempoDesk</div>
               <div className="brand-sub">Local time tracking</div>
