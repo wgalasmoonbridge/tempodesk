@@ -385,6 +385,15 @@ button {
   background: var(--accent-hover);
 }
 
+.btn-primary.create-tag-button {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.btn-primary.create-tag-button:hover {
+  background: #6d28d9;
+}
+
 .btn-danger {
   background: var(--danger);
   border-color: transparent;

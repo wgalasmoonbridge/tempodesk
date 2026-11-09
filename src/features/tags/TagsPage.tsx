@@ -157,7 +157,7 @@ export function TagsPage() {
             }
             action={
               tags.length === 0 ? (
-                <Button variant="primary" onClick={() => setEditing("new")}>
+                <Button variant="primary" className="create-tag-button" onClick={() => setEditing("new")}>
                   Create tag
                 </Button>
               ) : undefined
@@ -308,6 +308,7 @@ function TagDialog({
           </Button>
           <Button
             variant="primary"
+            className={tag ? undefined : "create-tag-button"}
             onClick={() => void save()}
             disabled={saving || Boolean(tag?.archivedAtUtc)}
           >
